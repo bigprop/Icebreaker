@@ -1,3 +1,5 @@
+#### IMPORT THE CUSTOMER INVOICE TRANSACTIONS ####
+
 rm(list = ls()) # clear the workspace as a precaution
 
 require(feather)
@@ -25,7 +27,7 @@ invoice_trans %>% summarise_each(funs(100*mean(is.na(.)))) # all data intact. No
 
 
 
-# "SALES_ID" 
+# "SALES_ID"  change to invoice_number to match with invoice journal
 # string prefixed integer:  SO00117238.  pattern SOnnnnnnnn
 # 
 # Group_by Aggregate raw SALES_ID to find top/bottom 5 total SALES_ID by transactions
@@ -47,8 +49,8 @@ transmute(invoice_trans, prefix = str_sub(SALES_ID,1,2)) %>% distinct() # SO
 # test that all remaining digits will convert to integer
 (fail_count <- filter(invoice_trans, is.na(as.integer(str_sub(SALES_ID, 3)))) %>% nrow) # 0.  no failures.
 
-# strip out the 2 char to prefix and number string to an integer
-sales_id_col <- transmute(invoice_trans, sales_id = as.integer(str_sub(SALES_ID, 3)))
+# strip out the 2 char to prefix and number string to an integer invoice number
+sales_id_col <- transmute(invoice_trans, invoice_number = as.integer(str_sub(SALES_ID, 3)))  # changing field name to invoice_number so that it match the invoice journal
 
 str(sales_id_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	513153 obs. of  1 variable:
@@ -68,8 +70,8 @@ summary(sales_id_col)
 # filter(invoice_trans, SALES_ID == "SO00045988") %>% View
 # filter(invoice_trans, SALES_ID == "SO90003867") %>% View
 
-# Whats the distribution of transaction per SALES_ID?
-(xdf <- group_by(sales_id_col, sales_id) %>% dplyr::summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+# Whats the distribution of transaction per SALES_ID ie invoice_number
+(xdf <- group_by(sales_id_col, invoice_number) %>% dplyr::summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
 # Histogram of the SALES_ID aggregation
 ggplot(xdf, aes(the_count)) + geom_histogram(bins = 50)
@@ -119,14 +121,14 @@ distinct(invoice_trans, CURRENCY_CURRENCY_CODE)
 currency_currency_code <- select(invoice_trans, currency_code = CURRENCY_CURRENCY_CODE)
 
 
-### "ITEM_ID" ###
+### "ITEM_ID" ###  change to "STYLE" for match with Product Hierarchy
 # Variety of formats! eg 1B6B41, 101328 etc.  too hard to sensibly separate.  
 # convert strings to factors with 1535 level.
 # 
 # How many distinct ITEM_ID?
 select(invoice_trans, ITEM_ID) %>% distinct(ITEM_ID) %>% nrow  # 1535
 
-item_id_col <- transmute(invoice_trans, item_id = as.factor(ITEM_ID))
+item_id_col <- transmute(invoice_trans, style = as.factor(ITEM_ID)) # NOTE: we change name to style so that it matches with product hierarchy
 str(item_id_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	513153 obs. of  1 variable:
 #   $ item_id: Factor w/ 1535 levels "100003","100006",..: 557 126 553 58 119 126 155 189 269 306 ...
@@ -143,10 +145,10 @@ summary(item_id_col)
 
 # closer look at the distribution of item_ids...
 
-# Aggregate group_by to see distribution on style_name
-(xdf <- group_by(item_id_col, item_id) %>% dplyr::summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+# Aggregate group_by to see distribution on style (item_id)
+(xdf <- group_by(item_id_col, style) %>% dplyr::summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
-# Histogram of the SALES_ID aggregation
+# Histogram of the style aggregation
 ggplot(xdf, aes(the_count)) + geom_histogram(bins = 50)
 ggplot(xdf, aes(log_count)) + geom_histogram(bins = 50)  # plot of the log
 
@@ -355,52 +357,51 @@ filter(sales_price_col, is.na(sales_price)) %>% nrow # 0
 # 
 # 
 xdf <- cbind(
-sales_id_col,
-document_number_invoice_id_col,
-currency_currency_code,
-item_id_col,
-style_name_col,
-line_amt_pre_discount_col,
-line_amt_post_discount_col,
-invoiced_discount_acy_col,
-cogs_col,
-invoiced_qty_col,
-sales_price_col)
+    sales_id_col,       # invoice_number  
+    document_number_invoice_id_col,
+    currency_currency_code,
+    #style_name_col,    # pick up from the product hierarchy join
+    item_id_col,        # style
+    line_amt_pre_discount_col,
+    line_amt_post_discount_col,
+    invoiced_discount_acy_col,
+    cogs_col,
+    invoiced_qty_col,
+    sales_price_col) %>% arrange(style)  # sorted by ascending style (in the item_id_col) this will join with the product hierarchy
 
 View(xdf)
 
 str(xdf)
 # 'data.frame':	513153 obs. of  12 variables:
-#   $ sales_id              : int  117238 117238 117238 117241 117241 117241 117241 117241 117241 117241 ...
+# $ sales_id              : int  129345 129345 129345 129345 129345 129345 129345 129345 129345 129345 ...
 # $ document_number_prefix: Factor w/ 2 levels "CSI","SCN": 1 1 1 1 1 1 1 1 1 1 ...
-# $ document_number_suffix: chr  "0128464" "0130313" "0132360" "0128357" ...
-# $ CURRENCY_CURRENCY_CODE: chr  "NZD" "NZD" "NZD" "NZD" ...
-# $ item_id               : Factor w/ 1535 levels "100003","100006",..: 557 126 553 58 119 126 155 189 269 306 ...
-# $ STYLE_NAME            : chr  "Mens Sierra LS Zip" "Mens Oasis LS Crewe" "Wmns Cascade LS Zip" "Wmns Bliss Wrap" ...
-# $ line_amt_pre_discount : num  137 48.9 137 195.7 39.1 ...
-# $ line_amt_post_discount: num  137 48.9 137 195.7 39.1 ...
-# $ invoiced_discount_acy : num  0 0 0 0 0 0 0 0 0 0 ...
-# $ cogs                  : num  58.9 23.4 46 91.6 17.1 ...
-# $ invoiced_qty          : int  1 1 1 2 1 1 1 2 1 1 ...
-# $ sales_price           : num  137 48.9 137 97.8 39.1 ...
+# $ document_number_suffix: chr  "0139397" "0139397" "0139397" "0139397" ...
+# $ currency_code         : chr  "NZD" "NZD" "NZD" "NZD" ...
+# $ style                 : Factor w/ 1535 levels "100003","100006",..: 587 623 625 677 691 706 708 715 805 809 ...
+# $ stlye_name            : chr  "Wmns Crush LS Scoop" "Wmns Siren Racerback Tank" "Wmns Sprite Hot Pants" "Wmns Crush Pants" ...
+# $ line_amt_pre_discount : num  63.6 29.4 117.4 293.5 88 ...
+# $ line_amt_post_discount: num  61 28.2 112.7 281.8 84.5 ...
+# $ invoiced_discount_acy : num  2.54 1.17 4.68 11.72 3.52 ...
+# $ cogs                  : num  24.4 13 48.9 175 48.2 ...
+# $ invoiced_qty          : int  1 1 6 4 2 3 3 1 1 1 ...
+# $ sales_price           : num  63.6 29.4 19.6 73.4 44 ...
 
 summary(xdf)
-# sales_id        document_number_prefix document_number_suffix CURRENCY_CURRENCY_CODE    item_id        STYLE_NAME        line_amt_pre_discount
-# Min.   :   45988   CSI:421045             Length:513153          Length:513153          100476 :  5763   Length:513153      Min.   :-56043.21    
-# 1st Qu.:   98660   SCN: 92108             Class :character       Class :character       100514 :  4906   Class :character   1st Qu.:    17.12    
-# Median :  119125                          Mode  :character       Mode  :character       IBM200 :  3893   Mode  :character   Median :    58.70    
-# Mean   : 2507654                                                                        IBN327 :  3885                      Mean   :    82.54    
-# 3rd Qu.:  146429                                                                        100871 :  3840                      3rd Qu.:   146.74    
-# Max.   :90003867                                                                        100471 :  3711                      Max.   : 62560.45    
-#                                                                                         (Other):487155
-#                                            
-# line_amt_post_discount invoiced_discount_acy      cogs            invoiced_qty       sales_price     
-# Min.   :-43876.77      Min.   :-23832.20     Min.   :-38204.90   Min.   :-830.000   Min.   :   0.00  
-# 1st Qu.:    14.15      1st Qu.:     0.00     1st Qu.:     7.04   1st Qu.:   1.000   1st Qu.:  20.81  
-# Median :    48.91      Median :     0.00     Median :    23.16   Median :   1.000   Median :  47.03  
-# Mean   :    72.33      Mean   :    10.21     Mean   :    36.10   Mean   :   1.695   Mean   :  58.08  
-# 3rd Qu.:   136.96      3rd Qu.:     2.35     3rd Qu.:    65.96   3rd Qu.:   3.000   3rd Qu.:  72.26  
-# Max.   : 43876.77      Max.   : 26588.19     Max.   : 38204.90   Max.   :1600.000   Max.   :3000.00
+# sales_id        document_number_prefix document_number_suffix currency_code          style         stlye_name        line_amt_pre_discount line_amt_post_discount
+# Min.   :   45988   CSI:421045             Length:513153          Length:513153      100476 :  5763   Length:513153      Min.   :-56043.21     Min.   :-43876.77     
+# 1st Qu.:   98660   SCN: 92108             Class :character       Class :character   100514 :  4906   Class :character   1st Qu.:    17.12     1st Qu.:    14.15     
+# Median :  119125                          Mode  :character       Mode  :character   IBM200 :  3893   Mode  :character   Median :    58.70     Median :    48.91     
+# Mean   : 2507654                                                                    IBN327 :  3885                      Mean   :    82.54     Mean   :    72.33     
+# 3rd Qu.:  146429                                                                    100871 :  3840                      3rd Qu.:   146.74     3rd Qu.:   136.96     
+# Max.   :90003867                                                                    100471 :  3711                      Max.   : 62560.45     Max.   : 43876.77     
+#                                                                                     (Other):487155                                                                  
+# invoiced_discount_acy      cogs            invoiced_qty       sales_price     
+# Min.   :-23832.20     Min.   :-38204.90   Min.   :-830.000   Min.   :   0.00  
+# 1st Qu.:     0.00     1st Qu.:     7.04   1st Qu.:   1.000   1st Qu.:  20.81  
+# Median :     0.00     Median :    23.16   Median :   1.000   Median :  47.03  
+# Mean   :    10.21     Mean   :    36.10   Mean   :   1.695   Mean   :  58.08  
+# 3rd Qu.:     2.35     3rd Qu.:    65.96   3rd Qu.:   3.000   3rd Qu.:  72.26  
+# Max.   : 26588.19     Max.   : 38204.90   Max.   :1600.000   Max.   :3000.00
 
 # write out the new dataframe as a feather file
 write_feather(xdf, "invoice_trans.feather")

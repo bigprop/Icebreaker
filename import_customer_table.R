@@ -1,3 +1,5 @@
+#### IMPORT THE CUSTOMER TABLE ####
+
 rm(list = ls()) # clear the workspace as a precaution
 
 require(feather)

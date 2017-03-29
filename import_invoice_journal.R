@@ -1,3 +1,5 @@
+#### IMPORT THE CUSTOMER JOURNAL ####
+
 rm(list = ls()) # clear the workspace as a precaution
 
 require(feather)
@@ -718,12 +720,12 @@ summary(warehouse_col)
 #[19] "SALES_TAKER"              "TERMS_OF_PAYMENT"         "INVOICE_AMOUNT_AC"        "LINE_DISCOUNT_AC"         "SALES_SUBTOTAL_AMOUNT_AC" "SALES_TAX_AC"            
 #[25] "CHARGES_AC"               "CURRENCY"                 "CHARGES"                  "WAREHOUSE"
 
-xdf <- cbind(
+xdf <- cbind(  # bind these in the order that makes the most sense for downstream processing
+    invoice_date_col,
+    invoice_number_col,
     customer_account_col,
     invoice_account_col,
     sales_order_col,
-    invoice_date_col,
-    invoice_number_col,
     voucher_col,
     invoice_amount_col,
     cash_dis_value_col,
@@ -746,7 +748,7 @@ xdf <- cbind(
     charges_ac_col,
     currency_col,
     charges_col,
-    warehouse_col)
+    warehouse_col) %>% arrange( desc(invoice_number) )  # sort based on the invoice number. most recent first...to help with joins
 
 View(xdf)
 
