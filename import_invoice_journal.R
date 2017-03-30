@@ -13,13 +13,13 @@ require(dplyr)
 
 # INSTANTIATE tibbles from feather
 setwd("C:/Users/rp/Projects/icebreaker_rp")
-(invoice_journal <- read_feather("R_CUSTOMER_INVOICE_JOURNAL.feather")) %>% View # import and view the data
+(invoice_journal_in <- read_feather("R_CUSTOMER_INVOICE_JOURNAL.feather")) %>% View # import and view the data
 
 # dimensions
-nrow(invoice_journal); ncol(invoice_journal)  # 49428 rows. 28 cols
+nrow(invoice_journal_in); ncol(invoice_journal_in)  # 49428 rows. 28 cols
 
 # column names
-colnames(invoice_journal)
+colnames(invoice_journal_in)
 # [1] "CUSTOMER_ACCOUNT"         "INVOICE_ACCOUNT"          "SALES_ORDER"              "INVOICE_DATE"             "INVOICE_NUMBER"          
 # [6] "VOUCHER"                  "INVOICE_AMOUNT"           "CASH_DIS_VALUE"           "CASH_DIS_CODE"            "DELIVERY_TERMS"          
 # [11] "DEPARTMENT"               "DIMENSION"                "DIMENSION_ACCOUNT"        "LINE_DISCOUNT"            "ORDER_TYPE"              
@@ -28,7 +28,7 @@ colnames(invoice_journal)
 # [26] "CURRENCY"                 "CHARGES"                  "WAREHOUSE"
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
-x <- invoice_journal %>% summarise_each(funs(100*mean(is.na(.))))
+x <- invoice_journal_in %>% summarise_each(funs(100*mean(is.na(.))))
 # SALES_ORDER         2.0%
 # CASH_DIS_CODE      99.3%
 # DELIVERY_TERMS      1.4%
@@ -37,6 +37,15 @@ x <- invoice_journal %>% summarise_each(funs(100*mean(is.na(.))))
 # RETURN_REASON_CODE 90.4%
 # TERMS_OF_PAYMENT  0.002%
 # WAREHOUSE           2.0%
+
+
+###  WHAT ROWS NEED TO BE FILTERED OUT OF THE DATA SET?
+###  
+# 1) only include rows where DEPARTMENT is for NZ
+invoice_journal <- filter(invoice_journal_in, DEPARTMENT %in% c("CONZL", "ROANZ")) 
+
+# new dimensions
+nrow(invoice_journal); ncol(invoice_journal) # 5462 rows  28 cols
 
 
 
@@ -333,20 +342,18 @@ summary(delivery_terms_col)
 
 
 ### "DEPARTMENT" ###
-# string factor : CONZL, ROANZ, WSAUS, WSNZL
-distinct(invoice_journal, DEPARTMENT)
+# string factor :  only include : CONZL, ROANZ. already filtered
+# 
+department_col <- transmute(invoice_journal, department=as.factor(DEPARTMENT)) # convert to a factor
 
-department_col <- transmute(invoice_journal, department=as.factor(DEPARTMENT))
 str(department_col)
-# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
-#   $ department: Factor w/ 4 levels "CONZL","ROANZ",..: 3 4 4 3 3 3 3 4 4 3 ...
+# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	5462 obs. of  1 variable:
+#   $ department: Factor w/ 2 levels "CONZL","ROANZ": 1 1 1 1 1 1 1 1 1 1 ...
 
 summary(department_col)
-# department   
-# CONZL: 5458  
-# ROANZ:    4  
-# WSAUS: 7664  
-# WSNZL:36302 
+# department  
+# CONZL:5458  
+# ROANZ:   4 
 
 
 
@@ -405,6 +412,7 @@ summary(line_discount_col)
 # 
 # investigate the values
 distinct(invoice_journal, ORDER_TYPE) %>% nrow # 3
+xdf <- filter(invoice_journal, ORDER_TYPE == "Journal")
 
 order_type_col <- transmute(invoice_journal, order_type=as.factor(ORDER_TYPE))
 str(order_type_col)
@@ -412,10 +420,10 @@ str(order_type_col)
 #   $ order_type: Factor w/ 3 levels "Journal","Returned order",..: 1 1 1 1 1 2 2 1 1 1 ...
 
 summary(order_type_col)
-# order_type   
-# Journal       :  991  
-# Returned order: 4768  
-# Sales order   : 4366
+# order_type  
+# Journal       :  41  
+# Returned order: 324  
+# Sales order   :5097
 
 
 

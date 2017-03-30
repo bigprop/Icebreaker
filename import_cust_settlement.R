@@ -93,7 +93,7 @@ xdf %>% summarise(num_child = n()) %>% arrange(desc(num_child))
 # 18              rd1         1
 # 19      rebel sport         1
 
-xdf <- group_by(customers, COMPANY_CHAIN) %>% arrange(NAME)
+
 
 
 
@@ -379,7 +379,7 @@ summary(statistics_group_col)
 
  
 # "SEGMENT"                       
-# string factor:   includes ICEBREAKER and staff
+# string factor
 # 
 # How many distinct SEGMENT?
 distinct(customers, SEGMENT) %>% nrow  # 12
@@ -401,7 +401,7 @@ summary(segment_col)
 
 
 # "SUBSEGMENT"                    
-# string factor:   includes lots of ICEBREAKER staff (IB STAFF) !
+# string factor
 # 
 # How many distinct SUBSEGMENT?
 distinct(customers, SUBSEGMENT) %>% nrow  # 23

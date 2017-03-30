@@ -1,3 +1,5 @@
+#### IMPORT_DASHDB_TABLES ####
+#
 # updated 29/03/2017. takes 8 - 10min to run.
 # 
 # added in new tables
@@ -65,3 +67,7 @@ write_feather(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.feather")
 # write.csv(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.feather", row.names = FALSE, na="")
 # write.csv(R_WAREHOUSING_COSTS, "R_WAREHOUSING_COSTS.feather", row.names = FALSE, na="")
 # write.csv(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.feather", row.names = FALSE, na="")
+# 
+
+### close the database connection ###
+idaClose(ch)

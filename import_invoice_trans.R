@@ -6,7 +6,7 @@ require(feather)
 require(tidyverse)
 require(stringr)
 require(dplyr)
-require(bit64)
+#require(bit64)
 
 # INSTANTIATE tibbles from feather
 setwd("C:/Users/rp/Projects/icebreaker_rp")
