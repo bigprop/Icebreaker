@@ -33,41 +33,54 @@ idaInit(ch)
 
 
 # Create in-database pointers
+CUSTOMER_TABLE_FINAL = ida.data.frame('CUSTOMER_TABLE_FINAL')
 CUSTOMER_INVOICE_JOURNAL = ida.data.frame('CUSTOMER_INVOICE_JOURNAL')
 CUST_INVOICE_TRANS = ida.data.frame('CUST_INVOICE_TRANS')
-CUSTOMER_TABLE_FINAL = ida.data.frame('CUSTOMER_TABLE_FINAL')
-RETURN_REASON_CODES = ida.data.frame('RETURN_REASON_CODES')
-WAREHOUSING_COSTS = ida.data.frame('WAREHOUSING_COSTS')
+CUST_SETTLEMENT = ida.data.frame('CUST_SETTLEMENT')
 PRODUCT_HIERARCHY_MAPPING = ida.data.frame('PRODUCT_HIERARCHY_MAPPING')
+RETURN_REASON_CODES = ida.data.frame('RETURN_REASON_CODES')
+SALES_ORDER = ida.data.frame('SALES_ORDER')
+SEASON_DATES = ida.data.frame('SEASON_DATES')
+WAREHOUSING_COSTS = ida.data.frame('WAREHOUSING_COSTS')
+
 
 # Change ida data.frame pointer to local R data.frame
-R_CUSTOMER_INVOICE_JOURNAL <- as.data.frame(CUSTOMER_INVOICE_JOURNAL)
-R_CUST_INVOICE_TRANS <- as.data.frame(CUST_INVOICE_TRANS)
 R_CUSTOMER_TABLE_FINAL = as.data.frame(CUSTOMER_TABLE_FINAL)
-R_RETURN_REASON_CODES = as.data.frame(RETURN_REASON_CODES)
-R_WAREHOUSING_COSTS = as.data.frame(WAREHOUSING_COSTS)
+R_CUSTOMER_INVOICE_JOURNAL = as.data.frame(CUSTOMER_INVOICE_JOURNAL)
+R_CUST_INVOICE_TRANS = as.data.frame(CUST_INVOICE_TRANS)
+R_CUST_SETTLEMENT = as.data.frame(CUST_SETTLEMENT)
 R_PRODUCT_HIERARCHY_MAPPING = as.data.frame(PRODUCT_HIERARCHY_MAPPING)
+R_RETURN_REASON_CODES = as.data.frame(RETURN_REASON_CODES)
+R_SALES_ORDER = as.data.frame(SALES_ORDER)
+R_SEASON_DATES = as.data.frame(SEASON_DATES)
+R_WAREHOUSING_COSTS = as.data.frame(WAREHOUSING_COSTS)
 
 
 
 # WRITE data.frames AS FEATHER FILES THAT CAN BE READ BY BOTH R AND PYTHON
+write_feather(R_CUSTOMER_TABLE_FINAL, "R_CUSTOMER_TABLE_FINAL.feather")
 write_feather(R_CUSTOMER_INVOICE_JOURNAL, "R_CUSTOMER_INVOICE_JOURNAL.feather")
 write_feather(R_CUST_INVOICE_TRANS, "R_CUST_INVOICE_TRANS.feather")
-write_feather(R_CUSTOMER_TABLE_FINAL, "R_CUSTOMER_TABLE_FINAL.feather")
-write_feather(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.feather")
-write_feather(R_WAREHOUSING_COSTS, "R_WAREHOUSING_COSTS.feather")
+write_feather(R_CUST_SETTLEMENT, "R_CUST_SETTLEMENT.feather")
 write_feather(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.feather")
+write_feather(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.feather")
+write_feather(R_SALES_ORDER, "R_SALES_ORDER.feather")
+write_feather(R_SEASON_DATES, "R_SEASON_DATES.feather")
+write_feather(R_WAREHOUSING_COSTS, "R_WAREHOUSING_COSTS.feather")
 
 
 
 # ALSO WRITE OUT AS CSV FILES
+# write.csv(R_CUSTOMER_TABLE_FINAL, "R_CUSTOMER_TABLE_FINAL.csv", row.names = FALSE, na="")
 # write.csv(R_CUSTOMER_INVOICE_JOURNAL, "R_CUSTOMER_INVOICE_JOURNAL.csv", row.names = FALSE, na="") # omit NA's
 # write.csv(R_CUST_INVOICE_TRANS, "R_CUST_INVOICE_TRANS.csv", row.names = FALSE, na="")
-# write.csv(R_CUSTOMER_TABLE_FINAL, "R_CUSTOMER_TABLE_FINAL.csv", row.names = FALSE, na="")
-# write.csv(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.feather", row.names = FALSE, na="")
+# write.csv(R_CUST_SETTLEMENT, "R_CUST_SETTLEMENT.csv", row.names = FALSE, na="")
+# write.csv(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.csv", row.names = FALSE, na="")
+# write.csv(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.csv", row.names = FALSE, na="")
+# write.csv(R_SALES_ORDER, "R_SALES_ORDER.csv", row.names = FALSE, na="")
+# write.csv(R_SEASON_DATES, "R_SEASON_DATES.csv", row.names = FALSE, na="")
 # write.csv(R_WAREHOUSING_COSTS, "R_WAREHOUSING_COSTS.feather", row.names = FALSE, na="")
-# write.csv(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.feather", row.names = FALSE, na="")
-# 
+ 
 
 ### close the database connection ###
 idaClose(ch)
