@@ -1,6 +1,6 @@
 #### IMPORT_DASHDB_TABLES ####
 #
-# updated 29/03/2017. takes 8 - 10min to run.
+# updated 01/04/2017. takes 8 - 10min to run.
 # 
 # added in new tables
 # 
@@ -37,6 +37,7 @@ CUSTOMER_TABLE_FINAL = ida.data.frame('CUSTOMER_TABLE_FINAL')
 CUSTOMER_INVOICE_JOURNAL = ida.data.frame('CUSTOMER_INVOICE_JOURNAL')
 CUST_INVOICE_TRANS = ida.data.frame('CUST_INVOICE_TRANS')
 CUST_SETTLEMENT = ida.data.frame('CUST_SETTLEMENT')
+FV_VOUCHER = ida.data.frame('FV_VOUCHER')
 PRODUCT_HIERARCHY_MAPPING = ida.data.frame('PRODUCT_HIERARCHY_MAPPING')
 RETURN_REASON_CODES = ida.data.frame('RETURN_REASON_CODES')
 SALES_ORDER = ida.data.frame('SALES_ORDER')
@@ -49,6 +50,7 @@ R_CUSTOMER_TABLE_FINAL = as.data.frame(CUSTOMER_TABLE_FINAL)
 R_CUSTOMER_INVOICE_JOURNAL = as.data.frame(CUSTOMER_INVOICE_JOURNAL)
 R_CUST_INVOICE_TRANS = as.data.frame(CUST_INVOICE_TRANS)
 R_CUST_SETTLEMENT = as.data.frame(CUST_SETTLEMENT)
+R_FV_VOUCHER = as.data.frame(FV_VOUCHER)
 R_PRODUCT_HIERARCHY_MAPPING = as.data.frame(PRODUCT_HIERARCHY_MAPPING)
 R_RETURN_REASON_CODES = as.data.frame(RETURN_REASON_CODES)
 R_SALES_ORDER = as.data.frame(SALES_ORDER)
@@ -62,6 +64,7 @@ write_feather(R_CUSTOMER_TABLE_FINAL, "R_CUSTOMER_TABLE_FINAL.feather")
 write_feather(R_CUSTOMER_INVOICE_JOURNAL, "R_CUSTOMER_INVOICE_JOURNAL.feather")
 write_feather(R_CUST_INVOICE_TRANS, "R_CUST_INVOICE_TRANS.feather")
 write_feather(R_CUST_SETTLEMENT, "R_CUST_SETTLEMENT.feather")
+write_feather(R_FV_VOUCHER, "R_FV_VOUCHER.feather")
 write_feather(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.feather")
 write_feather(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.feather")
 write_feather(R_SALES_ORDER, "R_SALES_ORDER.feather")
@@ -75,6 +78,7 @@ write_feather(R_WAREHOUSING_COSTS, "R_WAREHOUSING_COSTS.feather")
 # write.csv(R_CUSTOMER_INVOICE_JOURNAL, "R_CUSTOMER_INVOICE_JOURNAL.csv", row.names = FALSE, na="") # omit NA's
 # write.csv(R_CUST_INVOICE_TRANS, "R_CUST_INVOICE_TRANS.csv", row.names = FALSE, na="")
 # write.csv(R_CUST_SETTLEMENT, "R_CUST_SETTLEMENT.csv", row.names = FALSE, na="")
+# write.cdv(R_FV_VOUCHER, "R_FV_VOUCHER.csv", row.names = FALSE, na="")
 # write.csv(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.csv", row.names = FALSE, na="")
 # write.csv(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.csv", row.names = FALSE, na="")
 # write.csv(R_SALES_ORDER, "R_SALES_ORDER.csv", row.names = FALSE, na="")
