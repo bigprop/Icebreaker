@@ -12,8 +12,8 @@ require(dplyr)
 #require(bit64)
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(fv_voucher_df <- read_feather("R_FV_VOUCHER.feather")) %>% View
+#setwd("C:/Users/rp/Projects/icebreaker_rp")
+(fv_voucher_df <- read_feather("data/R_FV_VOUCHER.feather")) %>% View
 
 
 # dimensions
@@ -135,4 +135,4 @@ summary(xdf)
 # Max.   :105633   Max.   :1677.59    Max.   :2017-09-01 18:10:00
 
 # write fv_voucher dataframe out as a feather file
-write_feather(xdf,"fv_voucher.feather")
+write_feather(xdf,"data/fv_voucher.feather")

@@ -9,8 +9,8 @@ require(dplyr)
 
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(season_dates <- read_feather("R_SEASON_DATES.feather")) # %>% View
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(season_dates <- read_feather("data/R_SEASON_DATES.feather")) # %>% View
 
 
 # dimensions
@@ -96,4 +96,4 @@ summary(xdf)
  
 
 # write season_dates out as a feather file
-write_feather(xdf,"season_dates.feather")
+write_feather(xdf,"data/season_dates.feather")

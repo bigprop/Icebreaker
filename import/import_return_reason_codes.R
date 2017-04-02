@@ -12,8 +12,8 @@ require(dplyr)
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(return_reason_in <- read_feather("R_RETURN_REASON_CODES.feather")) %>% View # import and view the data
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(return_reason_in <- read_feather("data/R_RETURN_REASON_CODES.feather")) %>% View # import and view the data
 
 # dimensions
 nrow(return_reason_in); ncol(return_reason_in)  # 58 rows. 3 cols
@@ -125,4 +125,4 @@ str(xdf)
 # $ return_reason_group: Factor w/ 12 levels "carr issue","cnsm choic",..: 7 1 7 2 2 2 2 2 2 2 ...
 
 # write out the new dataframe as a feather file
-write_feather(xdf, "return_reason_codes.feather")
+write_feather(xdf, "data/return_reason_codes.feather")

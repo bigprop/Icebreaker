@@ -12,8 +12,8 @@ require(dplyr)
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(invoice_journal_in <- read_feather("R_CUSTOMER_INVOICE_JOURNAL.feather")) %>% View # import and view the data
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(invoice_journal_in <- read_feather("data/R_CUSTOMER_INVOICE_JOURNAL.feather")) %>% View # import and view the data
 
 # dimensions
 nrow(invoice_journal_in); ncol(invoice_journal_in)  # 49428 rows. 28 cols
@@ -835,4 +835,4 @@ summary(xdf)
 #                                                        NA's      :  993  
 
 # write out the new dataframe as a feather file
-write_feather(xdf, "invoice_journal.feather")
+write_feather(xdf, "data/invoice_journal.feather")

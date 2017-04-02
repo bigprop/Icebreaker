@@ -9,8 +9,8 @@ require(dplyr)
 #require(bit64)
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(customers <- read_feather("R_CUSTOMER_TABLE_FINAL.feather")) 
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(customers <- read_feather("data/R_CUSTOMER_TABLE_FINAL.feather")) 
 #     %>% View
 
 # dimensions
@@ -620,4 +620,4 @@ summary(xdf)
 # NA's     :  2                                                     NA's      :583 
 
 # write customer out as a feather file
-write_feather(xdf,"customer.feather")
+write_feather(xdf,"data/customer.feather")

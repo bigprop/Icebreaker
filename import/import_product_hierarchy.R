@@ -12,8 +12,8 @@ require(dplyr)
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(product_hierarchy_in <- read_feather("R_PRODUCT_HIERARCHY.feather")) %>% View # import and view the data
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(product_hierarchy_in <- read_feather("data/R_PRODUCT_HIERARCHY.feather")) %>% View # import and view the data
 
 # dimensions
 nrow(product_hierarchy_in); ncol(product_hierarchy_in)  # 2350 rows. 7 cols
@@ -236,4 +236,4 @@ summary(xdf)
 
 
 # write out the new dataframe as a feather file
-write_feather(xdf, "product_hierarchy.feather")
+write_feather(xdf, "data/product_hierarchy.feather")

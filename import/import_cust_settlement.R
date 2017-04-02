@@ -1,4 +1,7 @@
 #### IMPORT THE CUSTOMER SETTLEMENT TABLE ####
+# update with data/ path
+# consider using the readr package parse_* functions
+# 
 
 rm(list = ls()) # clear the workspace as a precaution
 
@@ -9,8 +12,8 @@ require(dplyr)
 #require(bit64)
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(cust_settlement <- read_feather("R_CUST_SETTLEMENT.feather")) #  %>% View
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(cust_settlement <- read_feather("data/R_CUST_SETTLEMENT.feather")) #  %>% View
 
 # dimensions
 nrow(cust_settlement); ncol(cust_settlement)  # 197436 rows, 9 cols
@@ -29,6 +32,12 @@ cust_settlement %>% summarise_each(funs(100*mean(is.na(.)))) # No NA's in the da
 # 
 # Get a count of the rows that fail conversion
 cust_settlement %>% filter( is.na(as.integer(ACCOUNT))) %>% nrow # 0
+
+# CONSIDER USING 'READR' PACKAGE PARSE_* FUNCTIONS TO CREATE VECTORS AND THEN BIND THEM AND COERCE INTO A TIBBLE
+# x <- parse_integer(cust_settlement$ACCOUNT)
+# y <- parse_number(cust_settlement$ACCOUNT)
+# xdf <- as_tibble(cbind(first_col = x, second_col = y))
+# summary (x)
 
 account_col <- transmute(cust_settlement, account = as.integer(ACCOUNT))
 summary(account_col)
@@ -195,4 +204,4 @@ summary(xdf)
 # Max.   :106028   Max.   :106028   GJV    :  2492        Max.   :178031   Max.   :2016-12-31      Max.   :2017-03-31   Max.   : 534805.3 
 
 # write customer out as a feather file
-write_feather(xdf,"cust_settlement.feather")
+write_feather(xdf,"data/cust_settlement.feather")

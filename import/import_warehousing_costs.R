@@ -12,8 +12,8 @@ require(dplyr)
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(warehousing_costs_in <- read_feather("R_WAREHOUSING_COSTS.feather") %>% arrange(REGION)) %>% View # import, arrange and view the data
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(warehousing_costs_in <- read_feather("data/R_WAREHOUSING_COSTS.feather") %>% arrange(REGION)) %>% View # import, arrange and view the data
 
 # dimensions
 nrow(warehousing_costs_in); ncol(warehousing_costs_in)  # 58 rows. 3 cols
@@ -335,4 +335,4 @@ str(xdf)
 # $ cs_fixed_cost             : num  -1.59 -1.59 -1.59 -1.59 -1.59 ...
 
 # write out the new dataframe as a feather file
-write_feather(xdf, "warehousing_costs_codes.feather")
+write_feather(xdf, "data/warehousing_costs_codes.feather")

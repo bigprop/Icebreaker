@@ -5,7 +5,7 @@
 # added in new tables
 # 
 rm(list = ls()) # clear workspace as a precaution
-setwd("C:/Users/rp/Projects/Icebreaker_rp") # location to store the files
+# setwd("C:/Users/rp/Projects/Icebreaker_rp") # location to store the files
 
 # LIBRARIES
 require(ibmdbR)
@@ -60,30 +60,30 @@ R_WAREHOUSING_COSTS = as.data.frame(WAREHOUSING_COSTS)
 
 
 # WRITE data.frames AS FEATHER FILES THAT CAN BE READ BY BOTH R AND PYTHON
-write_feather(R_CUSTOMER_TABLE_FINAL, "R_CUSTOMER_TABLE_FINAL.feather")
-write_feather(R_CUSTOMER_INVOICE_JOURNAL, "R_CUSTOMER_INVOICE_JOURNAL.feather")
-write_feather(R_CUST_INVOICE_TRANS, "R_CUST_INVOICE_TRANS.feather")
-write_feather(R_CUST_SETTLEMENT, "R_CUST_SETTLEMENT.feather")
-write_feather(R_FV_VOUCHER, "R_FV_VOUCHER.feather")
-write_feather(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.feather")
-write_feather(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.feather")
-write_feather(R_SALES_ORDER, "R_SALES_ORDER.feather")
-write_feather(R_SEASON_DATES, "R_SEASON_DATES.feather")
-write_feather(R_WAREHOUSING_COSTS, "R_WAREHOUSING_COSTS.feather")
+write_feather(R_CUSTOMER_TABLE_FINAL, "data/R_CUSTOMER_TABLE_FINAL.feather")
+write_feather(R_CUSTOMER_INVOICE_JOURNAL, "data/R_CUSTOMER_INVOICE_JOURNAL.feather")
+write_feather(R_CUST_INVOICE_TRANS, "data/R_CUST_INVOICE_TRANS.feather")
+write_feather(R_CUST_SETTLEMENT, "data/R_CUST_SETTLEMENT.feather")
+write_feather(R_FV_VOUCHER, "data/R_FV_VOUCHER.feather")
+write_feather(R_PRODUCT_HIERARCHY_MAPPING, "data/R_PRODUCT_HIERARCHY.feather")
+write_feather(R_RETURN_REASON_CODES, "data/R_RETURN_REASON_CODES.feather")
+write_feather(R_SALES_ORDER, "data/R_SALES_ORDER.feather")
+write_feather(R_SEASON_DATES, "data/R_SEASON_DATES.feather")
+write_feather(R_WAREHOUSING_COSTS, "data/R_WAREHOUSING_COSTS.feather")
 
 
 
 # ALSO WRITE OUT AS CSV FILES
-# write.csv(R_CUSTOMER_TABLE_FINAL, "R_CUSTOMER_TABLE_FINAL.csv", row.names = FALSE, na="")
-# write.csv(R_CUSTOMER_INVOICE_JOURNAL, "R_CUSTOMER_INVOICE_JOURNAL.csv", row.names = FALSE, na="") # omit NA's
-# write.csv(R_CUST_INVOICE_TRANS, "R_CUST_INVOICE_TRANS.csv", row.names = FALSE, na="")
-# write.csv(R_CUST_SETTLEMENT, "R_CUST_SETTLEMENT.csv", row.names = FALSE, na="")
-# write.cdv(R_FV_VOUCHER, "R_FV_VOUCHER.csv", row.names = FALSE, na="")
-# write.csv(R_PRODUCT_HIERARCHY_MAPPING, "R_PRODUCT_HIERARCHY.csv", row.names = FALSE, na="")
-# write.csv(R_RETURN_REASON_CODES, "R_RETURN_REASON_CODES.csv", row.names = FALSE, na="")
-# write.csv(R_SALES_ORDER, "R_SALES_ORDER.csv", row.names = FALSE, na="")
-# write.csv(R_SEASON_DATES, "R_SEASON_DATES.csv", row.names = FALSE, na="")
-# write.csv(R_WAREHOUSING_COSTS, "R_WAREHOUSING_COSTS.feather", row.names = FALSE, na="")
+# write.csv(R_CUSTOMER_TABLE_FINAL, "data/R_CUSTOMER_TABLE_FINAL.csv", row.names = FALSE, na="")
+# write.csv(R_CUSTOMER_INVOICE_JOURNAL, "data/R_CUSTOMER_INVOICE_JOURNAL.csv", row.names = FALSE, na="") # omit NA's
+# write.csv(R_CUST_INVOICE_TRANS, "data/R_CUST_INVOICE_TRANS.csv", row.names = FALSE, na="")
+# write.csv(R_CUST_SETTLEMENT, "data/R_CUST_SETTLEMENT.csv", row.names = FALSE, na="")
+# write.cdv(R_FV_VOUCHER, "data/R_FV_VOUCHER.csv", row.names = FALSE, na="")
+# write.csv(R_PRODUCT_HIERARCHY_MAPPING, "data/R_PRODUCT_HIERARCHY.csv", row.names = FALSE, na="")
+# write.csv(R_RETURN_REASON_CODES, "data/R_RETURN_REASON_CODES.csv", row.names = FALSE, na="")
+# write.csv(R_SALES_ORDER, "data/R_SALES_ORDER.csv", row.names = FALSE, na="")
+# write.csv(R_SEASON_DATES, "data/R_SEASON_DATES.csv", row.names = FALSE, na="")
+# write.csv(R_WAREHOUSING_COSTS, "data/R_WAREHOUSING_COSTS.feather", row.names = FALSE, na="")
  
 
 ### close the database connection ###

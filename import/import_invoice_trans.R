@@ -9,8 +9,8 @@ require(dplyr)
 #require(bit64)
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(invoice_trans <- read_feather("R_CUST_INVOICE_TRANS.feather")) %>% View
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
+(invoice_trans <- read_feather("data/R_CUST_INVOICE_TRANS.feather")) %>% View
 
 # dimensions
 nrow(invoice_trans); ncol(invoice_trans)  # 513153 row, 11 col
@@ -404,4 +404,4 @@ summary(xdf)
 # Max.   : 26588.19     Max.   : 38204.90   Max.   :1600.000   Max.   :3000.00
 
 # write out the new dataframe as a feather file
-write_feather(xdf, "invoice_trans.feather")
+write_feather(xdf, "data/invoice_trans.feather")

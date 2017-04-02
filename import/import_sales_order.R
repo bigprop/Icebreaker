@@ -12,8 +12,8 @@ require(dplyr)
 #require(bit64)
 
 # INSTANTIATE tibbles from feather
-setwd("C:/Users/rp/Projects/icebreaker_rp")
-(sales_order_df <- read_feather("R_SALES_ORDER.feather")) %>% View
+#setwd("C:/Users/rp/Projects/icebreaker_rp")
+(sales_order_df <- read_feather("data/R_SALES_ORDER.feather")) %>% View
 
 
 # dimensions
@@ -329,4 +329,4 @@ str(xdf)
 summary(xdf)
 
 # write sales_order dataframe out as a feather file
-write_feather(xdf,"sales_order.feather")
+write_feather(xdf,"data/sales_order.feather")
