@@ -1,4 +1,4 @@
-#### IMPORT THE CUSTOMER JOURNAL ####
+#### IMPORT THE INVOICE JOURNAL ####
 
 rm(list = ls()) # clear the workspace as a precaution
 
@@ -41,8 +41,8 @@ x <- invoice_journal_in %>% summarise_each(funs(100*mean(is.na(.))))
 
 ###  WHAT ROWS NEED TO BE FILTERED OUT OF THE DATA SET?
 ###  
-# 1) only include rows where DEPARTMENT is for NZ
-invoice_journal <- filter(invoice_journal_in, DEPARTMENT %in% c("CONZL", "ROANZ")) 
+# 1) EXCLUDE rows where DEPARTMENT is "CONZL" or "ROANZ"
+invoice_journal <- filter(invoice_journal_in, ! DEPARTMENT %in% c("CONZL", "ROANZ")) 
 
 # new dimensions
 nrow(invoice_journal); ncol(invoice_journal) # 5462 rows  28 cols
