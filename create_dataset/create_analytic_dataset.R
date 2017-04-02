@@ -10,14 +10,14 @@ require(stringr)
 
 # options(scipen=999) # force not to use scientific notation for number display
 # options(scipen=0) # default value
-setwd("C:/Users/rp/Projects/icebreaker_rp")
+# setwd("C:/Users/rp/Projects/icebreaker_rp")
 
 
 ### 1. JOIN TRANSACTIONS AND PRODUCT HIERARCHY on STYLE
 #
 # INSTANTIATE tibbles from feather
-invoice_trans <- read_feather("invoice_trans.feather")          # pre sorted by style
-product_hierarchy <- read_feather("product_hierarchy.feather")  # pre sorted by style
+invoice_trans <- read_feather("data/invoice_trans.feather")          # pre sorted by style
+product_hierarchy <- read_feather("data/product_hierarchy.feather")  # pre sorted by style
 
 # expect to join on "style" column in both tibbles
 # do anti-join to see if there are invoice_trans styles that dont have a match in the product hierarchy
@@ -33,7 +33,7 @@ rm(xdf); rm(invoice_trans); rm(product_hierarchy) # free up memory. delete sourc
 
 
 ### 2. JOIN INVOICE JOURNAL TO THE enriched TRANSACTIONS on invoice_number  
-invoice_journal <- read_feather("invoice_journal.feather")      # pre sorted by invoice_number desc
+invoice_journal <- read_feather("data/invoice_journal.feather")      # pre sorted by invoice_number desc
 
 # test how many of our enriched transactions dont have a matching invoice journal entry!
 (mismatch_df2 <- invoice_journal %>% anti_join(invoice_trans_enriched, by="invoice_number") %>% distinct(invoice_number) %>% arrange(invoice_number)) %>% nrow # !!! 36042 !!!
@@ -44,14 +44,14 @@ invoice_journal_enriched <- ydf %>%
   select(invoice_date, invoice_prefix, invoice_number:class) %>% 
   arrange(desc(invoice_date), desc(invoice_number))  
 
-write_feather(invoice_journal_enriched, "invoice_journal_enriched.feather") #  sorted most recent date, most recent invoice
+write_feather(invoice_journal_enriched, "data/invoice_journal_enriched.feather") #  sorted most recent date, most recent invoice
 
 rm(ydf); rm(invoice_journal); rm(invoice_trans_enriched) # free up memory. delete source dataframes.
 
 
 
 ### 3. JOIN CUSTOMER TABLE entries with matching enriched INVOICE JOURNAL records on customer_account  ...or should it be invoice_account?
-customer <- read_feather("customer.feather")      # pre sorted by customer_account desc
+customer <- read_feather("data/customer.feather")      # pre sorted by customer_account desc
 
 # do anti-join to see if there are customers that dont have any matching invoice journal records...
 (mismatch_df3 <- customer %>% anti_join(invoice_journal_enriched, by="customer_account") %>% arrange(customer_account)) %>% nrow # !!! 333 !!!
@@ -61,4 +61,4 @@ zdf <- merge(customer, invoice_journal_enriched, by="customer_account")
 
 customer_invoice_trans <- arrange(zdf, desc(customer_account), desc(invoice_date), desc(invoice_number))
 
-write_feather(customer_invoice_trans, "customer_invoice_trans.feather")
+write_feather(customer_invoice_trans, "data/customer_invoice_trans.feather")
