@@ -1,6 +1,9 @@
 #### RUN IMPORT SCRIPTS  ####
 #### 
 
+# !!!! TO DO modify this to be a bash shell script that calls Rscript with the name of the import_*.R script to run
+# 
+
 # script file to call all of the import data table from DashDb into feather files
 # which are then converted into tibble dataframes with required types, filtering etc.
 # 

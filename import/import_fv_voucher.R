@@ -1,20 +1,21 @@
 #### IMPORT THE FV_VOUCHER TABLE ####
-
+# date 4/4/2017
 ## always remember to preserve the row ordering within columns...so can correctly assemble data frame from columns!!!!
 
 rm(list = ls()) # clear the workspace as a precaution
 options(stringsAsFactors = FALSE) # set option so that by default strings are left as character vector
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-#require(bit64)
+require(lubridate)
+
 
 # INSTANTIATE tibbles from feather
 #setwd("C:/Users/rp/Projects/icebreaker_rp")
-(fv_voucher_df <- read_feather("data/R_FV_VOUCHER.feather")) %>% View
-
+(fv_voucher_df <- read_feather("data/R_FV_VOUCHER.feather")) # import and view the data
+if (interactive()) View(fv_voucher_df)
 
 # dimensions
 nrow(fv_voucher_df); ncol(fv_voucher_df)  # 614 rows, 25 cols
@@ -29,7 +30,7 @@ colnames(fv_voucher_df)
 
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
-fv_voucher_df %>% summarise_each(funs(100*mean(is.na(.)))) %>% View # there are a few NA's in the data set.
+fv_voucher_df %>% summarise_each(funs(100*mean(is.na(.)))) # %>% View # there are a few NA's in the data set.
 
 
 ### COLUMNS THAT WE ARE INTERESTED IN....
@@ -117,7 +118,7 @@ xdf <- cbind(
       create_date_time_col)
 
 
-View(xdf) # lets look at the findal data frame...
+if (interactive()) View(xdf) # lets look at the final data frame...
 
 str(xdf)
 # 'data.frame':	614 obs. of  3 variables:

@@ -1,19 +1,22 @@
 #### IMPORT THE CUSTOMER SETTLEMENT TABLE ####
+# date:  4/4/17
 # update with data/ path
 # consider using the readr package parse_* functions
 # 
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
+require(lubridate)
 require(stringr)
-require(dplyr)
-#require(bit64)
+
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(cust_settlement <- read_feather("data/R_CUST_SETTLEMENT.feather")) #  %>% View
+(cust_settlement <- read_feather("data/R_CUST_SETTLEMENT.feather")) #  import the data
+if (interactive()) View(cust_settlement)
 
 # dimensions
 nrow(cust_settlement); ncol(cust_settlement)  # 197436 rows, 9 cols
@@ -182,7 +185,7 @@ xdf <- cbind(
       due_date_col,
       amount_settled_col)
 
-View(xdf) # lets look at the findal data frame...
+if (interactive()) View(xdf) # lets look at the final data frame...
 
 str(xdf)
 # 'data.frame':	197436 obs. of  7 variables:

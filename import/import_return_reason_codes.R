@@ -1,19 +1,21 @@
 #### IMPORT THE RETURN REASON CODES ####
+# date 4/4/17
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-# require(bit64)
+
 
 # options(scipen=999) # force not to use scientific notation for number display
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(return_reason_in <- read_feather("data/R_RETURN_REASON_CODES.feather")) %>% View # import and view the data
+(return_reason_in <- read_feather("data/R_RETURN_REASON_CODES.feather")) # import the data
+if (interactive()) View(return_reason_in) # View when in RStudio
 
 # dimensions
 nrow(return_reason_in); ncol(return_reason_in)  # 58 rows. 3 cols
@@ -116,7 +118,7 @@ xdf <- cbind(
     description_col,
     return_reason_group_col)
 
-View(xdf)
+if (interactive()) View(xdf) # View when in RStudio
 
 str(xdf)
 # 'data.frame':	58 obs. of  3 variables:

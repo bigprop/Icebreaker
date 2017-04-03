@@ -1,19 +1,21 @@
 #### IMPORT THE SALES_ORDER TABLE ####
+# date 4/4/17
 
 ## always remember to preserve the row ordering within columns...so can correctly assemble data frame from columns!!!!
 
 rm(list = ls()) # clear the workspace as a precaution
 options(stringsAsFactors = FALSE) # set option so that by default strings are left as character vector
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-#require(bit64)
+
 
 # INSTANTIATE tibbles from feather
 #setwd("C:/Users/rp/Projects/icebreaker_rp")
-(sales_order_df <- read_feather("data/R_SALES_ORDER.feather")) %>% View
+(sales_order_df <- read_feather("data/R_SALES_ORDER.feather"))
+if (interactive()) View(sales_order_df)
 
 
 # dimensions
@@ -30,7 +32,7 @@ colnames(sales_order_df)
 
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
-sales_order_df %>% summarise_each(funs(100*mean(is.na(.)))) %>% View # there are lots of NA's in the data set.
+sales_order_df %>% summarise_each(funs(100*mean(is.na(.)))) # there are lots of NA's in the data set.
 
 
 ### COLUMNS THAT WE ARE INTERESTED IN....
@@ -322,7 +324,7 @@ xdf <- cbind(
       country_region_col)
 
 
-View(xdf) # lets look at the findal data frame...
+if (interactive()) View(xdf) # lets look at the final data frame...
 
 str(xdf)
 
