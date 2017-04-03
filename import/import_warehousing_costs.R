@@ -1,19 +1,20 @@
 #### IMPORT WAREHOUSING COSTS ####
+# date 4/4/17
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-# require(bit64)
 
 # options(scipen=999) # force not to use scientific notation for number display
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(warehousing_costs_in <- read_feather("data/R_WAREHOUSING_COSTS.feather") %>% arrange(REGION)) %>% View # import, arrange and view the data
+(warehousing_costs_in <- read_feather("data/R_WAREHOUSING_COSTS.feather") %>% arrange(REGION)) # import, arrange and view the data
+if (interactive()) View(warehousing_costs_in) 
 
 # dimensions
 nrow(warehousing_costs_in); ncol(warehousing_costs_in)  # 58 rows. 3 cols
@@ -315,7 +316,7 @@ xdf <- cbind(
     cs_fixed_cost_col)
  
 
-View(xdf)
+if (interactive()) View(xdf)
 
 str(xdf)
 # 'data.frame':	20 obs. of  14 variables:

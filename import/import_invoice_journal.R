@@ -1,19 +1,21 @@
 #### IMPORT THE INVOICE JOURNAL ####
+# date 4/4/17
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-# require(bit64)
+require(lubridate)
 
 # options(scipen=999) # force not to use scientific notation for number display
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(invoice_journal_in <- read_feather("data/R_CUSTOMER_INVOICE_JOURNAL.feather")) %>% View # import and view the data
+(invoice_journal_in <- read_feather("data/R_CUSTOMER_INVOICE_JOURNAL.feather")) # import and view the data
+if (interactive()) View(invoice_journal_in)
 
 # dimensions
 nrow(invoice_journal_in); ncol(invoice_journal_in)  # 49428 rows. 28 cols
@@ -75,14 +77,14 @@ distinct(customer_account_col, customer_account) %>% nrow # 343
 
 
 # Top five customer account by number of transactions
-(xdf <- group_by(customer_account_col, customer_account) %>% summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+(xdf <- group_by(customer_account_col, customer_account) %>% summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
 # histogram of the count
 ggplot(xdf, aes(x=the_count)) + geom_histogram(bins = 40)
-ggplot(xdf, aes(x=log_count)) + geom_histogram(bins = 40)
+ggplot(xdf, aes(x=log2_count)) + geom_histogram(bins = 40)
 
 ggplot(xdf, aes(x=the_count)) + stat_ecdf()
-ggplot(xdf, aes(x=log_count)) + stat_ecdf()
+ggplot(xdf, aes(x=log2_count)) + stat_ecdf()
 
 # ECDF function
 P <- ecdf(xdf$the_count)
@@ -758,7 +760,7 @@ xdf <- cbind(  # bind these in the order that makes the most sense for downstrea
     charges_col,
     warehouse_col) %>% arrange( desc(invoice_number) )  # sort based on the invoice number. most recent first...to help with joins
 
-View(xdf)
+if (interactive()) View(xdf)
 
 str(xdf)
 # 'data.frame':	49428 obs. of  32 variables:

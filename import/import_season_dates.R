@@ -1,7 +1,9 @@
 #### IMPORT SEASON DATES TABLE ####
+# date: 4/4/17
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
@@ -10,7 +12,8 @@ require(dplyr)
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(season_dates <- read_feather("data/R_SEASON_DATES.feather")) # %>% View
+(season_dates <- read_feather("data/R_SEASON_DATES.feather")) # import and view the data
+if (interactive()) View(season_dates)
 
 
 # dimensions
@@ -78,7 +81,7 @@ xdf <- cbind(
       begin_date_col,
       end_date_col)
 
-View(xdf) # lets look at the findal data frame...
+if (interactive()) View(xdf) # lets look at the final data frame...
 
 str(xdf)
 # $ region    : Factor w/ 5 levels "aus","can","eur",..: 1 1 2 2 3 3 4 4 5 5

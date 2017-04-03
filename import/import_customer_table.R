@@ -1,17 +1,18 @@
 #### IMPORT THE CUSTOMER TABLE ####
+# date: 4/4/17
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-#require(bit64)
+
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(customers <- read_feather("data/R_CUSTOMER_TABLE_FINAL.feather")) 
-#     %>% View
+(customers <- read_feather("data/R_CUSTOMER_TABLE_FINAL.feather")) # import and view the data
+if (interactive()) View(customers)
 
 # dimensions
 nrow(customers); ncol(customers)  # 676 rows, 23 cols
@@ -27,6 +28,7 @@ colnames(customers)
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
 customers %>% summarise_each(funs(100*mean(is.na(.)))) # there are NA's in the data set.
+
 
 ### "CUSTOMER_ACCOUNT" ###
 #  string integer
@@ -93,7 +95,7 @@ xdf %>% summarise(num_child = n()) %>% arrange(desc(num_child))
 # 18              rd1         1
 # 19      rebel sport         1
 
-xdf <- group_by(customers, COMPANY_CHAIN) %>% arrange(NAME)
+# xdf <- group_by(customers, COMPANY_CHAIN) %>% arrange(NAME)
 
 
 
@@ -554,7 +556,7 @@ xdf <- cbind(
       edi_code_col,
       terms_of_business_col)
 
-View(xdf) # lets look at the findal data frame...
+if (interactive()) View(xdf) # lets look at the final data frame...
 
 str(xdf)
 # 'data.frame':	676 obs. of  23 variables:

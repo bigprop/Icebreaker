@@ -1,16 +1,18 @@
 #### IMPORT THE CUSTOMER INVOICE TRANSACTIONS ####
+# date: 4/4/17
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-#require(bit64)
+
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(invoice_trans <- read_feather("data/R_CUST_INVOICE_TRANS.feather")) %>% View
+(invoice_trans <- read_feather("data/R_CUST_INVOICE_TRANS.feather")) # import and view the data
+if (interactive()) View(invoice_trans)
 
 # dimensions
 nrow(invoice_trans); ncol(invoice_trans)  # 513153 row, 11 col
@@ -71,16 +73,16 @@ summary(sales_id_col)
 # filter(invoice_trans, SALES_ID == "SO90003867") %>% View
 
 # Whats the distribution of transaction per SALES_ID ie invoice_number
-(xdf <- group_by(sales_id_col, invoice_number) %>% dplyr::summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+(xdf <- group_by(sales_id_col, invoice_number) %>% dplyr::summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
 # Histogram of the SALES_ID aggregation
 ggplot(xdf, aes(the_count)) + geom_histogram(bins = 50)
-ggplot(xdf, aes(log_count)) + geom_histogram(bins = 50)  # plot of the log
+ggplot(xdf, aes(log2_count)) + geom_histogram(bins = 50)  # plot of the log
 
 
 # Cumulative Density function
 ggplot(xdf, aes(the_count)) + stat_ecdf()
-ggplot(xdf, aes(log_count)) + stat_ecdf() # makes it clear the 50% mark is 3
+ggplot(xdf, aes(log2_count)) + stat_ecdf() # makes it clear the 50% mark is 3
 
 
 P <- ecdf(xdf$the_count)
@@ -146,16 +148,16 @@ summary(item_id_col)
 # closer look at the distribution of item_ids...
 
 # Aggregate group_by to see distribution on style (item_id)
-(xdf <- group_by(item_id_col, style) %>% dplyr::summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+(xdf <- group_by(item_id_col, style) %>% dplyr::summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
 # Histogram of the style aggregation
 ggplot(xdf, aes(the_count)) + geom_histogram(bins = 50)
-ggplot(xdf, aes(log_count)) + geom_histogram(bins = 50)  # plot of the log
+ggplot(xdf, aes(log2_count)) + geom_histogram(bins = 50)  # plot of the log
 
 
 # Cumulative Density function
 ggplot(xdf, aes(the_count)) + stat_ecdf()
-ggplot(xdf, aes(log_count)) + stat_ecdf() # makes it clear the 50% mark is 3
+ggplot(xdf, aes(log2_count)) + stat_ecdf() # makes it clear the 50% mark is 3
 
 
 #"STYLE_NAME"                   
@@ -195,8 +197,6 @@ filter(line_amt_pre_discount_col, line_amt_pre_discount == 0.0) %>% nrow # 2821
 
 # Any NAs?
 filter(line_amt_pre_discount_col, is.na(line_amt_pre_discount)) %>% nrow # 0
-
-
 
 
 #"LINE_AMT_POST_DISCOUNT"       
@@ -369,7 +369,7 @@ xdf <- cbind(
     invoiced_qty_col,
     sales_price_col) %>% arrange(style)  # sorted by ascending style (in the item_id_col) this will join with the product hierarchy
 
-View(xdf)
+if (interactive()) View(xdf)
 
 str(xdf)
 # 'data.frame':	513153 obs. of  12 variables:

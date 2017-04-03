@@ -1,19 +1,20 @@
 #### IMPORT THE PRODUCT HIERARCHY ####
+# date 4/4/17
 
 rm(list = ls()) # clear the workspace as a precaution
 
+require(methods) # Rscript wants it loaded
 require(feather)
 require(tidyverse)
 require(stringr)
-require(dplyr)
-# require(bit64)
 
 # options(scipen=999) # force not to use scientific notation for number display
 # options(scipen=0) # default value
 
 # INSTANTIATE tibbles from feather
 # setwd("C:/Users/rp/Projects/icebreaker_rp")
-(product_hierarchy_in <- read_feather("data/R_PRODUCT_HIERARCHY.feather")) %>% View # import and view the data
+(product_hierarchy_in <- read_feather("data/R_PRODUCT_HIERARCHY.feather")) # import and view the data
+if (interactive()) View(product_hierarchy_in)
 
 # dimensions
 nrow(product_hierarchy_in); ncol(product_hierarchy_in)  # 2350 rows. 7 cols
@@ -162,7 +163,6 @@ summary(category_col)
 # underwear  : 171
 
 
-
 ### "CLASS" ###
 # string factor. lower case.
 #
@@ -211,7 +211,7 @@ xdf <- cbind(
     category_col,
     class_col)
 
-View(xdf)
+if (interactive()) View(xdf)
 
 str(xdf)
 # 'data.frame':	2340 obs. of  7 variables:
