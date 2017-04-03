@@ -1,4 +1,4 @@
-#### IMPORT_DASHDB_TABLES ####
+#### INGEST_DASHDB_TABLES ####
 #
 # updated 01/04/2017. takes 8 - 10min to run.
 # 

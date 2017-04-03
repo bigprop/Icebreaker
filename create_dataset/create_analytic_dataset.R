@@ -15,16 +15,29 @@ require(stringr)
 
 ### 1. JOIN TRANSACTIONS AND PRODUCT HIERARCHY on STYLE
 #
-# INSTANTIATE tibbles from feather
+# investigate invoice_trans
 invoice_trans <- read_feather("data/invoice_trans.feather")          # pre sorted by style
 nrow(invoice_trans) # 513153
 
+# how many unique invoice_number?
+distinct(invoice_trans, invoice_number) %>% nrow # 35004
+
+# whats the grouping of multiple transacton / invoice_number?
+xdf <- group_by(invoice_trans, invoice_number) %>% dplyr::summarise(the_count = n()) %>% arrange(desc(the_count)) # highest is the_count = 470 for invoice 15967
+
+
+# investigate product_hierarchy
 product_hierarchy <- read_feather("data/product_hierarchy.feather")  # pre sorted by style
-nrow(product_hierarchy) # 2340
+nrow(product_hierarchy) # 2340 total. only 1336 have matches in the invoice_trans
 
 # expect to join on "style" column in both tibbles
 # do anti-join to see if there are invoice_trans styles that dont have a match in the product hierarchy
-(mismatch_df1 <- invoice_trans %>% anti_join(product_hierarchy, by="style") %>% distinct(style) %>% arrange(style)) %>% nrow # !!! 199 distinct styles missing from product hierarchy!!!
+(mismatch_df1 <- invoice_trans %>% anti_join(product_hierarchy, by="style") %>% distinct(style) %>% arrange(style)) %>% nrow # 199 distinct styles missing from product hierarchy
+
+# do anti-join to see if there are styles that dont have a match in the invoice_trans
+(mismatch_df2 <- product_hierarchy %>% anti_join(invoice_trans, by="style") %>% distinct(style) %>% arrange(style)) %>% nrow # 1004 dont have matches in the transactions
+
+
 
 # use plyr package to do a left outer join - preserves all records in the LHS transaction table to give us enriched transaction dataframe
 xdf <- merge(invoice_trans, product_hierarchy, by="style", all.x=TRUE) 
