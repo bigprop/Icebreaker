@@ -52,7 +52,7 @@ transmute(invoice_trans, prefix = str_sub(SALES_ID,1,2)) %>% distinct() # SO
 (fail_count <- filter(invoice_trans, is.na(as.integer(str_sub(SALES_ID, 3)))) %>% nrow) # 0.  no failures.
 
 # strip out the 2 char to prefix and number string to an integer invoice number
-sales_id_col <- transmute(invoice_trans, invoice_number = as.integer(str_sub(SALES_ID, 3)))  # changing field name to invoice_number so that it match the invoice journal
+sales_id_col <- transmute(invoice_trans, sales_order = as.integer(str_sub(SALES_ID, 3)))  # changing field name so that it match the invoice journal
 
 str(sales_id_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	513153 obs. of  1 variable:
@@ -97,12 +97,12 @@ quantile(P, probs = 0.95) # 59.  95% of sales_id have 1..59 entries.  ie only 5%
 
 
 #"DOCUMENT_NUMBER__INVOICE_ID_" 
-# string prefixed factor + integer. 
+# string prefixed factor + integer. this is actually the INVOICE_NUMBER
 # e.g CSI0131417  aaannnnnnn
 
 (fail_count <- filter(invoice_trans, !str_detect(DOCUMENT_NUMBER__INVOICE_ID_, '^[A-Z]{3}\\d{7}')) %>% nrow()) # 0.  all good
 
-document_number_invoice_id_col <- transmute(invoice_trans, document_number_prefix = as.factor(str_sub(DOCUMENT_NUMBER__INVOICE_ID_,1,3)), document_number_suffix = str_sub(DOCUMENT_NUMBER__INVOICE_ID_,4))
+document_number_invoice_id_col <- transmute(invoice_trans, document_number_prefix = as.factor(str_sub(DOCUMENT_NUMBER__INVOICE_ID_,1,3)), document_number_suffix = as.integer(str_sub(DOCUMENT_NUMBER__INVOICE_ID_,4)))
 
 str(document_number_invoice_id_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	513153 obs. of  2 variables:
@@ -167,7 +167,7 @@ ggplot(xdf, aes(log2_count)) + stat_ecdf() # makes it clear the 50% mark is 3
 distinct(invoice_trans, STYLE_NAME) %>% nrow # 1245
 
 # Create the new column
-style_name_col <- select(invoice_trans, stlye_name = STYLE_NAME)
+style_name_col <- select(invoice_trans, style_name = STYLE_NAME)
 
 
 #"LINE_AMT_PRE_DISCOUNT"        
@@ -360,7 +360,7 @@ xdf <- cbind(
     sales_id_col,       # invoice_number  
     document_number_invoice_id_col,
     currency_currency_code,
-    #style_name_col,    # pick up from the product hierarchy join
+    style_name_col,     # style name
     item_id_col,        # style
     line_amt_pre_discount_col,
     line_amt_post_discount_col,
@@ -378,7 +378,7 @@ str(xdf)
 # $ document_number_suffix: chr  "0139397" "0139397" "0139397" "0139397" ...
 # $ currency_code         : chr  "NZD" "NZD" "NZD" "NZD" ...
 # $ style                 : Factor w/ 1535 levels "100003","100006",..: 587 623 625 677 691 706 708 715 805 809 ...
-# $ stlye_name            : chr  "Wmns Crush LS Scoop" "Wmns Siren Racerback Tank" "Wmns Sprite Hot Pants" "Wmns Crush Pants" ...
+# $ style_name            : chr  "Wmns Crush LS Scoop" "Wmns Siren Racerback Tank" "Wmns Sprite Hot Pants" "Wmns Crush Pants" ...
 # $ line_amt_pre_discount : num  63.6 29.4 117.4 293.5 88 ...
 # $ line_amt_post_discount: num  61 28.2 112.7 281.8 84.5 ...
 # $ invoiced_discount_acy : num  2.54 1.17 4.68 11.72 3.52 ...
@@ -387,7 +387,7 @@ str(xdf)
 # $ sales_price           : num  63.6 29.4 19.6 73.4 44 ...
 
 summary(xdf)
-# sales_id        document_number_prefix document_number_suffix currency_code          style         stlye_name        line_amt_pre_discount line_amt_post_discount
+# sales_id        document_number_prefix document_number_suffix currency_code          style         style_name        line_amt_pre_discount line_amt_post_discount
 # Min.   :   45988   CSI:421045             Length:513153          Length:513153      100476 :  5763   Length:513153      Min.   :-56043.21     Min.   :-43876.77     
 # 1st Qu.:   98660   SCN: 92108             Class :character       Class :character   100514 :  4906   Class :character   1st Qu.:    17.12     1st Qu.:    14.15     
 # Median :  119125                          Mode  :character       Mode  :character   IBM200 :  3893   Mode  :character   Median :    58.70     Median :    48.91     

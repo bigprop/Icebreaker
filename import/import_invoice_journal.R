@@ -223,10 +223,10 @@ summary(invoice_number_col)
 # invoice_prefix invoice_number  
 # CSI:43453      Min.   : 10526  
 # SCN: 5975      1st Qu.:100176  
-# Median :125882  
-# Mean   :118287  
-# 3rd Qu.:151293  
-# Max.   :179888
+#                Median :125882  
+#                Mean   :118287  
+#                3rd Qu.:151293  
+#                Max.   :179888
 
 
 ### "VOUCHER" ###
@@ -346,7 +346,7 @@ summary(delivery_terms_col)
 ### "DEPARTMENT" ###
 # string factor :  only include : CONZL, ROANZ. already filtered
 # 
-department_col <- transmute(invoice_journal, department=as.factor(DEPARTMENT)) # convert to a factor
+department_col <- transmute(invoice_journal, department=as.factor(str_to_lower(DEPARTMENT))) # convert to a factor
 
 str(department_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	5462 obs. of  1 variable:
@@ -363,14 +363,14 @@ summary(department_col)
 # looks like an integer64 string e.g 5637147333
 #
 # convert to a factor for now with 123 levels..
-distinct(invoice_journal,DIMENSION) %>% nrow # 123
+#distinct(invoice_journal,DIMENSION) %>% nrow # 123
 
-dimension_col <- transmute(invoice_journal, dimension = as.factor(DIMENSION))
-str(dimension_col)
+#dimension_col <- transmute(invoice_journal, dimension = as.factor(DIMENSION))
+# str(dimension_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 # $ dimension: Factor w/ 123 levels "5637145327","5637147333",..: 2 3 3 2 8 8 2 13 13 22 ...
 
-summary(dimension_col)
+# summary(dimension_col)
 # dimension    
 # 5637150092: 7656  
 # 5637145327: 6700  
@@ -384,10 +384,10 @@ summary(dimension_col)
 ### "DIMENSION_ACCOUNT" ###
 # all NA.  no change
 # 
-distinct(invoice_journal,DIMENSION_ACCOUNT) %>% nrow #  all NA
+# distinct(invoice_journal,DIMENSION_ACCOUNT) %>% nrow #  all NA
 
-dimension_account_col <- select(invoice_journal, dimension_account = DIMENSION_ACCOUNT)
-str(dimension_account_col)
+# dimension_account_col <- select(invoice_journal, dimension_account = DIMENSION_ACCOUNT)
+# str(dimension_account_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 # $ DIMENSION_ACCOUNT: chr  NA NA NA NA ...
 
@@ -455,7 +455,7 @@ summary(ordertype2_col)
 # investigate the values
 distinct(invoice_journal, RETURN_REASON_CODE) %>% nrow # 52
 
-return_reason_code_col <- transmute(invoice_journal, return_reason_code=as.factor(RETURN_REASON_CODE))
+return_reason_code_col <- transmute(invoice_journal, return_reason_code=as.factor(str_to_lower(RETURN_REASON_CODE)))
 str(return_reason_code_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 #   $ return_reason_code: Factor w/ 51 levels "CANCEL","CARRIER",..: NA NA NA NA NA 46 21 NA NA NA ...
@@ -498,14 +498,14 @@ filter(sales_subtotal_amount_col, sales_subtotal_amount == 0.0) %>% nrow # 451
 # 
 # lets keep this a string factor for now...with 13 levels
 # 
-distinct(invoice_journal, SALES_TAKER) %>% nrow #13
+#distinct(invoice_journal, SALES_TAKER) %>% nrow #13
 
-sales_taker_col <- transmute(invoice_journal, sales_taker = as.factor(SALES_TAKER))
-str(sales_taker_col)
+#sales_taker_col <- transmute(invoice_journal, sales_taker = as.factor(SALES_TAKER))
+#str(sales_taker_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 # $ sales_taker: Factor w/ 13 levels "0","5637144826",..: 5 2 2 1 5 7 1 8 8 1 ...
 
-summary(sales_taker_col)
+#summary(sales_taker_col)
 # sales_taker   
 # 0         :45194  
 # 5637145600: 1362  
@@ -742,14 +742,14 @@ xdf <- cbind(  # bind these in the order that makes the most sense for downstrea
     cash_dis_code_col,
     delivery_terms_col,
     department_col,
-    dimension_col,
-    dimension_account_col,
+    # dimension_col,          no useful data
+    # dimension_account_col,  no useful data
     line_discount_col,
     order_type_col,
     ordertype2_col,
     return_reason_code_col,
     sales_subtotal_amount_col,
-    sales_taker_col,
+    # sales_taker_col,        no useful data
     terms_of_payment_col,
     invoice_amount_ac_col,
     line_discount_ac_col,

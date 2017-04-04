@@ -173,14 +173,14 @@ filter(credit_limit_col, is.na(credit_limit)) %>% nrow # 0
 # String factor? 
 #
 # How many distinct COMPANY_CHAIN?
-distinct(customers, CUSTOMERS_PRICES_HANDLING) %>% nrow  # 2
+# distinct(customers, CUSTOMERS_PRICES_HANDLING) %>% nrow  # 2
 
-customers_prices_handling_col <- transmute(customers, customers_prices_handling = as.factor(CUSTOMERS_PRICES_HANDLING))
-str(customers_prices_handling_col)
+# customers_prices_handling_col <- transmute(customers, customers_prices_handling = as.factor(CUSTOMERS_PRICES_HANDLING))
+# str(customers_prices_handling_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ customers_prices_handling: Factor w/ 2 levels "None","Unexpected number of columns %1 with the value %2": 1 1 1 1 1 1 1 1 1 1 ...
 #   
-summary(customers_prices_handling_col)
+# summary(customers_prices_handling_col)
 # customers_prices_handling
 # None                                             :664        
 # Unexpected number of columns %1 with the value %2: 12
@@ -538,7 +538,7 @@ xdf <- cbind(
       currency_col,
       cur_credit_limit_col,
       credit_limit_col,
-      customers_prices_handling_col,
+#    customers_prices_handling_col,  # doesnt contain any useful information
       invoice_account_col,
       line_discount_col,
       line_of_business_col,
