@@ -22,12 +22,17 @@ nrow(invoice_journal_in); ncol(invoice_journal_in)  # 49428 rows. 28 cols
 
 # column names
 colnames(invoice_journal_in)
-# [1] "CUSTOMER_ACCOUNT"         "INVOICE_ACCOUNT"          "SALES_ORDER"              "INVOICE_DATE"             "INVOICE_NUMBER"          
+# [1] **"ACCOUNT_NUMBER"         "INVOICE_ACCOUNT"          "SALES_ORDER"              "INVOICE_DATE"             "INVOICE_NUMBER"          
 # [6] "VOUCHER"                  "INVOICE_AMOUNT"           "CASH_DIS_VALUE"           "CASH_DIS_CODE"            "DELIVERY_TERMS"          
 # [11] "DEPARTMENT"               "DIMENSION"                "DIMENSION_ACCOUNT"        "LINE_DISCOUNT"            "ORDER_TYPE"              
 # [16] "ORDERTYPE2"               "RETURN_REASON_CODE"       "SALES_SUBTOTAL_AMOUNT"    "SALES_TAKER"              "TERMS_OF_PAYMENT"        
 # [21] "INVOICE_AMOUNT_AC"        "LINE_DISCOUNT_AC"         "SALES_SUBTOTAL_AMOUNT_AC" "SALES_TAX_AC"             "CHARGES_AC"              
 # [26] "CURRENCY"                 "CHARGES"                  "WAREHOUSE"
+
+# ACCOUNT_NUMBER is the actual account number of the end client the customer table.
+# INVOICE_ACCOUNT is the account number where this invoice has been raised against - could be a head office ordering on behalf of a door.
+# both of these should match to the CUSTOMER table ACCOUNT_NUMBER column
+
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
 x <- invoice_journal_in %>% summarise_each(funs(100*mean(is.na(.))))
@@ -51,7 +56,7 @@ nrow(invoice_journal); ncol(invoice_journal) # 5462 rows  28 cols
 
 
 
-### "CUSTOMER_ACCOUNT" ###
+### "ACCOUNT_NUMBER"  renamed from CUSTOMER_ACCOUNT
 #  string integer
 # .Machine$integer.max
 # [1] 214748364
@@ -59,9 +64,13 @@ nrow(invoice_journal); ncol(invoice_journal) # 5462 rows  28 cols
 #  
 #  
 # Get a count of the rows that fail conversion
+
+# is there any difference between customer_account and invoice_account values?
+filter(invoice_journal, CUSTOMER_ACCOUNT != INVOICE_ACCOUNT) %>% nrow # 2189 dont match. this is where invoiced to a different invoice_account eg head office
+
 filter(invoice_journal, is.na(as.integer(CUSTOMER_ACCOUNT))) %>% nrow # 0. all good)
 
-customer_account_col <- transmute(invoice_journal, customer_account = as.integer(CUSTOMER_ACCOUNT))
+customer_account_col <- transmute(invoice_journal, account_number = as.integer(CUSTOMER_ACCOUNT))
 
 summary(customer_account_col)  # this is correct
 # customer_account
@@ -72,12 +81,12 @@ summary(customer_account_col)  # this is correct
 # 3rd Qu.:100661  
 # Max.   :106028
 
-# how many distinct customer_account
-distinct(customer_account_col, customer_account) %>% nrow # 343
+# how many distinct customer account numbers?
+distinct(customer_account_col, account_number) %>% nrow # 343
 
 
 # Top five customer account by number of transactions
-(xdf <- group_by(customer_account_col, customer_account) %>% summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+(xdf <- group_by(customer_account_col, account_number) %>% summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
 # histogram of the count
 ggplot(xdf, aes(x=the_count)) + geom_histogram(bins = 40)
@@ -150,38 +159,46 @@ dplyr::summarise(by_custacct, the_count = n_distinct(INVOICE_ACCOUNT)) %>% arran
 
 
 ### "SALES_ORDER" ###
-# test for structure SOnnnnnnnn.  contains NA's
-# extract the numeric part and test convert to integer  
+# test for structure SOnnnnnnnn.  contains NA's and duplicates
+# sales order table contains SO and SR with the same number
+# therefore need to manage as factor to maintain uniqueness
+# 
+# are there any duplicate sales orders?
+group_by(invoice_journal, SALES_ORDER) %>% filter(n() > 1) %>% nrow  # 14543
 
-# count the NA
-filter(invoice_journal, is.na(SALES_ORDER)) %>% nrow  # 991
+# count the NA 
+filter(invoice_journal, is.na(SALES_ORDER)) # %>% View  # 991
 
-# investigate the SALES_ORDER prefix.  check that SO is the only prefix
+# test that these are where there is a free text order in the VOUCHER column
+filter(invoice_journal, is.na(SALES_ORDER) & is.na(VOUCHER)) %>% nrow # 0 therefore hypothesis is true. ok.
+
+# investigate the SALES_ORDER prefix.  test that "SO" is the only prefix
 distinct(invoice_journal, prefix = str_sub(SALES_ORDER,1,2)) # NA, "SO"
 
-# Get a count of the rows that would fail pattern match
-filter(invoice_journal, !str_detect(SALES_ORDER, '^SO\\d{8}$')) %>% nrow # 0.  no failures
+# investigate the grouping of SALES_ORDER and INVOICE_NUMBER
+invoice_journal %>% group_by(INVOICE_NUMBER, SALES_ORDER) %>% summarise(the_count = n()) %>% arrange(desc(the_count)) # 1:1 
+invoice_journal %>% group_by(SALES_ORDER, INVOICE_NUMBER) %>% summarise(the_count = n()) %>% arrange(desc(the_count)) # 1:1
 
-# test that all remaining digits will convert to integer
-filter(invoice_journal, is.na(as.integer(str_sub(SALES_ORDER, 3)))) %>% nrow # 991 NAs
+# in summary
+# Sales order that contain NA have an associated voucher which contains the order detais in free text
+# Invoice number does not contain NA in this data set
+# Where a sales order is defined, there is a 1:1 relationship with a single invoice number
 
-# strip out the 2 char to prefix and number string to an integer.  add extra sales_id col to simplify join with invoice_trans
-sales_order_col <- transmute(invoice_journal, sales_order_prefix = str_sub(SALES_ORDER,1,2), sales_order = as.integer(str_sub(SALES_ORDER, 3)), sales_id = as.integer(str_sub(SALES_ORDER, 3)))
+sales_order_col <- transmute(invoice_journal, sales_order = as.factor(str_to_lower(SALES_ORDER)))
 
 str(sales_order_col)
-# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  2 variables:
-# $ sales_order_prefix: chr  NA NA NA NA ...
-# $ sales_order       : int  NA NA NA NA NA 81529 78167 NA NA NA ..
+# classes ‘tbl_df’, ‘tbl’ and 'data.frame':	43966 obs. of  1 variable:
+# $ sales_order: Factor w/ 33808 levels "so00045988","so00046461",..: 11175
 
 summary(sales_order_col)
-# sales_order_prefix  sales_order      
-# Length:49428       Min.   :   45988  
-# Class :character   1st Qu.:   96716  
-# Mode  :character   Median :  119456  
-#                    Mean   :  710206  
-#                    3rd Qu.:  144604  
-#                    Max.   :90003867  
-#                    NA's   :991
+# sales_order   
+# so00148812:   14  
+# so00148813:   13  
+# so00149932:   13  
+# so00099434:   12  
+# so00099453:   12  
+# (Other)   :42952  
+# NA's      :  950
 
 
 ### "INVOICE_DATE"  ###
@@ -198,74 +215,86 @@ filter(invoice_journal, is.na(as.Date(INVOICE_DATE))) %>% nrow # 0 fail.
 invoice_date_col <- transmute(invoice_journal, invoice_date = as.Date(INVOICE_DATE))
                   
                     
-### "INVOICE_NUMBER" ###
+### "INVOICE_NUMBER" ###  no duplicates
 # e.g. SCN0010751
 # looks like format aaannnnnnn   3 char alphabetic prefix factor with 7 numeric
-# separate into 2 separate fields
-# 
-filter(invoice_journal, !str_detect(invoice_journal$INVOICE_NUMBER, '^[A-Z]{3}\\d{7}')) %>% nrow # 0 failures
+#
+# CSI  customer sales invoice
+# SCN  sales credit note
+#
+# are there duplicate invoice number in this table?
+group_by(invoice_journal, INVOICE_NUMBER) %>% filter(n() > 1) %>% nrow  # 0.  no duplicates
+
+# pattern match 'aaannnnnnn'
+# filter(invoice_journal, !str_detect(invoice_journal$INVOICE_NUMBER, '^[A-Z]{3}\\d{7}')) %>% nrow # 0 failures
 
 # investigate the prefix
 distinct(invoice_journal, prefix = str_sub(INVOICE_NUMBER,1,3)) # CSI, SCN
 
-# test that all remaining digits will convert to integer
-filter(invoice_journal, is.na(as.integer(str_sub(INVOICE_NUMBER, 4)))) %>% nrow()  # 0 failures
-
 # strip out the 3 char to invoice type factor and convert number to an integer
-invoice_number_col <- transmute(invoice_journal, invoice_prefix = as.factor(str_sub(INVOICE_NUMBER,1,3)), invoice_number = as.integer(str_sub(INVOICE_NUMBER, 4)))
+invoice_number_col <- transmute(invoice_journal, 
+                                invoice_prefix = as.factor(str_to_lower(str_sub(INVOICE_NUMBER,1,3))), 
+                                invoice_number = as.factor(str_to_lower(INVOICE_NUMBER)))
 
 str(invoice_number_col)
-# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  2 variables:
-# $ invoice_prefix: Factor w/ 2 levels "CSI","SCN": 2 2 2 2 2 2 2 2 2 2 ...
-# $ invoice_number: int  11153 11154 11155 11156 11157 11158 11159 11160 11161 11162 ...
+# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	43966 obs. of  2 variables:
+# $ invoice_prefix: Factor w/ 2 levels "csi","scn": 1 1 1 1 1 1 1 1 1 1 ...
+# $ invoice_number: Factor w/ 43966 levels "csi0089455","csi0089456",..: 11640 11641
 
-summary(invoice_number_col)
-# invoice_prefix invoice_number  
-# CSI:43453      Min.   : 10526  
-# SCN: 5975      1st Qu.:100176  
-#                Median :125882  
-#                Mean   :118287  
-#                3rd Qu.:151293  
-#                Max.   :179888
+# summary(invoice_number_col)
+# invoice_prefix    invoice_number 
+# csi:38350      csi0089455:    1  
+# scn: 5616      csi0089456:    1  
+#                csi0089457:    1  
+#                csi0089461:    1  
+#                csi0089462:    1  
+#                csi0089463:    1  
+#                (Other)   :43960
 
 
 ### "VOUCHER" ###
 # e.g. FCV0001245   aaannnnnnn  3 char alphabetic  voucher_type with 7 numeric
-# separate into 2 separate fields
+# # separate out the prefix and also convert to a factor
 # 
+# are there duplicate invoice number in this table?
+group_by(invoice_journal, VOUCHER) %>% filter(n() > 1) %>% nrow  # 0.  no duplicates
+
+# pattern match 'aaannnnnnn'
 filter(invoice_journal, !str_detect(invoice_journal$VOUCHER, '^[A-Z]{3}\\d{7}')) %>% nrow # 0 failures
 
 # investigate the prefix
 distinct(invoice_journal, prefix = str_sub(VOUCHER,1,3)) # FCV, SCV, CIV, FTI
 
-# test that all remaining digits will convert to integer
-filter(invoice_journal, is.na(as.integer(str_sub(VOUCHER, 4)))) %>% nrow()  # 0 failures
-
 # strip out the 3 char to invoice type factor and convert number to an integer
-voucher_col <- transmute(invoice_journal, voucher_prefix = as.factor(str_sub(VOUCHER,1,3)), voucher = as.integer(str_sub(VOUCHER, 4)))
+voucher_col <- transmute(invoice_journal, 
+                         voucher_prefix = as.factor(str_to_lower(str_sub(VOUCHER,1,3))), 
+                         voucher = as.factor(str_to_lower(VOUCHER)))
 
 str(voucher_col)
-# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  2 variables:
-# $ voucher_prefix: Factor w/ 4 levels "CIV","FCV","FTI",..: 2 2 2 2 2 4 4 2 2 2 ...
-# $ voucher       : int  1245 1246 1247 1248 1249 9909 9910 1250 1251 1252 ...
+# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	43966 obs. of  2 variables:
+# $ voucher_prefix: Factor w/ 4 levels "civ","fcv","fti",..: 1 1 1 1 1 1 1 1 1 1 ...
+# $ voucher       : Factor w/ 43966 levels "civ0089236","civ0089237",..: 11608 11609
 
 summary(voucher_col)
-# voucher_prefix    voucher      
-# CIV:43273      Min.   :   220  
-# FCV:  811      1st Qu.: 99599  
-# FTI:  180      Median :125367  
-# SCV: 5164      Mean   :117125  
-#                3rd Qu.:150874  
-#                Max.   :179480
+# voucher_prefix       voucher     
+# civ:38179      civ0089236:    1  
+# fcv:  779      civ0089237:    1  
+# fti:  171      civ0089238:    1  
+# scv: 4837      civ0089242:    1  
+#                civ0089243:    1  
+#                civ0089244:    1  
+#                (Other)   :43960
 
 
 ### "INVOICE_AMOUNT" ###
 # -258.72, 0.00, 122.40.  numeric...but have negative, zero, positive!
+# if the invoice amount is negative then it will be credited to customer
+# 
 # 
 # Get a count of the rows that fail conversion
 filter(invoice_journal, is.na(as.numeric(INVOICE_AMOUNT))) %>% nrow # 0 fail.
 
-invoice_amount_col <- transmute(invoice_journal, invoice_amount = as.numeric(INVOICE_AMOUNT), credit = invoice_amount < 0.0)
+invoice_amount_col <- transmute(invoice_journal, invoice_amount = as.numeric(INVOICE_AMOUNT), credit_customer = invoice_amount < 0.0)
 str(invoice_amount_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  2 variables:
 # $ invoice_amount: num  -66 -11.5 -289.8 -1650 -0.24 ...
@@ -279,7 +308,6 @@ summary(invoice_amount_col)
 # Mean   :    866.4   NA's :0        
 # 3rd Qu.:    592.3                  
 # Max.   : 534805.3
-
 
 
 ### "CASH_DIS_VALUE" ###
@@ -311,7 +339,7 @@ summary(cash_dis_value_col)
 # what are the distinct CASH_DIS_CODE values?
 distinct(invoice_journal, CASH_DIS_CODE)  # NA, 21D_5%  and 21D_2.5%
 
-cash_dis_code_col <- transmute(invoice_journal, cash_dis_code = as.factor(CASH_DIS_CODE))
+cash_dis_code_col <- transmute(invoice_journal, cash_dis_code = as.factor(str_to_lower(CASH_DIS_CODE)))
 str(cash_dis_code_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 # $ as.factor(CASH_DIS_CODE): Factor w/ 2 levels "21D_2.5%","21D_5%": NA NA NA NA NA NA NA NA NA NA ...
@@ -330,7 +358,7 @@ summary(cash_dis_code_col)
 # what are the distinct DELIVERY_TERMS values?
 distinct(invoice_journal, DELIVERY_TERMS)
 
-delivery_terms_col <- transmute(invoice_journal, delivery_terms = as.factor(DELIVERY_TERMS))
+delivery_terms_col <- transmute(invoice_journal, delivery_terms = as.factor(str_to_lower(DELIVERY_TERMS)))
 str(delivery_terms_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 # $ as.factor(DELIVERY_TERMS): Factor w/ 3 levels "CC","PI","PP": 2 2 2 2 2 2 2 2 2 2 ...
@@ -356,7 +384,6 @@ summary(department_col)
 # department  
 # CONZL:5458  
 # ROANZ:   4 
-
 
 
 ### "DIMENSION" ###
@@ -416,7 +443,7 @@ summary(line_discount_col)
 distinct(invoice_journal, ORDER_TYPE) %>% nrow # 3
 xdf <- filter(invoice_journal, ORDER_TYPE == "Journal")
 
-order_type_col <- transmute(invoice_journal, order_type=as.factor(ORDER_TYPE))
+order_type_col <- transmute(invoice_journal, order_type=as.factor(str_to_lower(ORDER_TYPE)))
 str(order_type_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 #   $ order_type: Factor w/ 3 levels "Journal","Returned order",..: 1 1 1 1 1 2 2 1 1 1 ...
@@ -428,14 +455,13 @@ summary(order_type_col)
 # Sales order   :5097
 
 
-
 ### "ORDERTYPE2" ###
 # string factoR:  AtOnce, EOL, Indent, Promo, NA
 # 
 # investigate the values
 distinct(invoice_journal, ORDERTYPE2) %>% nrow # 5
 
-ordertype2_col <- transmute(invoice_journal, ordertype2=as.factor(ORDERTYPE2))
+ordertype2_col <- transmute(invoice_journal, ordertype2=as.factor(str_to_lower(ORDERTYPE2)))
 str(ordertype2_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 #   $ ordertype2: Factor w/ 4 levels "AtOnce","EOL",..: NA NA NA NA NA NA NA NA NA NA ...
@@ -522,7 +548,7 @@ filter(sales_subtotal_amount_col, sales_subtotal_amount == 0.0) %>% nrow # 451
 # investigate the values
 distinct(invoice_journal, TERMS_OF_PAYMENT) %>% nrow # 18
 
-terms_of_payment_col <- transmute(invoice_journal, terms_of_payment=as.factor(TERMS_OF_PAYMENT))
+terms_of_payment_col <- transmute(invoice_journal, terms_of_payment=as.factor(str_to_lower(TERMS_OF_PAYMENT)))
 str(terms_of_payment_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 #   $ terms_of_payment: Factor w/ 17 levels "CM+1M(10)","CM+1M+20D",..: 17 4 4 8 17 17 8 4 4 8 ...
@@ -609,7 +635,6 @@ filter(sales_subtotal_amount_ac_col, sales_subtotal_amount_ac == 0.0) %>% nrow #
 filter(sales_subtotal_amount_ac_col, is.na(sales_subtotal_amount_ac)) %>% nrow # No NA
 
 
-
 # "SALES_TAX_AC"
 # Get a count of the rows that fail conversion
 filter(invoice_journal, is.na(as.numeric(SALES_TAX_AC))) %>% nrow # 0. all good
@@ -665,7 +690,7 @@ filter(charges_ac_col, is.na(charges_ac)) %>% nrow # No NA
 # investigate the values
 distinct(invoice_journal, CURRENCY)
 
-currency_col <- transmute(invoice_journal, currency=as.factor(CURRENCY))
+currency_col <- transmute(invoice_journal, currency=as.factor(str_to_lower(CURRENCY)))
 str(currency_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 #   $ terms_of_payment: Factor w/ 2 levels "AUD","NZD": 1 2 2 1 1 1 1 2 2 1 ...
@@ -707,7 +732,7 @@ filter(charges_col, is.na(charges)) %>% nrow # No NA
 # investigate the values
 distinct(invoice_journal, WAREHOUSE) %>% nrow #20
 
-warehouse_col <- transmute(invoice_journal, warehouse=as.factor(WAREHOUSE))
+warehouse_col <- transmute(invoice_journal, warehouse=as.factor(str_to_lower(WAREHOUSE)))
 str(warehouse_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	49428 obs. of  1 variable:
 #   $ warehouse: Factor w/ 19 levels "ANZ_DISCRP","ANZ_DS",..: NA NA NA NA NA 5 5 NA NA NA ...
@@ -732,9 +757,9 @@ summary(warehouse_col)
 
 xdf <- cbind(  # bind these in the order that makes the most sense for downstream processing
     invoice_date_col,
-    invoice_number_col,
-    customer_account_col,
+    customer_account_col,    
     invoice_account_col,
+    invoice_number_col,    
     sales_order_col,
     voucher_col,
     invoice_amount_col,

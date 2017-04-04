@@ -1,4 +1,4 @@
-#### IMPORT THE FV_VOUCHER TABLE ####
+#### IMPORT THE PV_VOUCHER TABLE ####
 # date 4/4/2017
 ## always remember to preserve the row ordering within columns...so can correctly assemble data frame from columns!!!!
 
@@ -14,14 +14,14 @@ require(lubridate)
 
 # INSTANTIATE tibbles from feather
 #setwd("C:/Users/rp/Projects/icebreaker_rp")
-(fv_voucher_df <- read_feather("data/R_FV_VOUCHER.feather")) # import and view the data
-if (interactive()) View(fv_voucher_df)
+(pv_voucher_df <- read_feather("data/R_PV_VOUCHER.feather")) # import and view the data
+if (interactive()) View(pv_voucher_df)
 
 # dimensions
-nrow(fv_voucher_df); ncol(fv_voucher_df)  # 614 rows, 25 cols
+nrow(pv_voucher_df); ncol(pv_voucher_df)  # 614 rows, 25 cols
 
-colnames(fv_voucher_df)
-# [1] "ACCOUNT_NUM"                 "CAN_BE_REVERSED"             "CUST_CASH_DISC_DATE"         "DUE_DATE"                    "EU_SALES_LIST"              
+colnames(pv_voucher_df)
+# [1] **"ACCOUNT_NUM"                 "CAN_BE_REVERSED"             "CUST_CASH_DISC_DATE"         "DUE_DATE"                    "EU_SALES_LIST"              
 # [6] "EXCH_ADJUSTMENT"             "LAST_INTEREST_DATE"          "OFFSET_ACCOUNT_NUM"          "UTILISED_CASH_DISC"          "OFFSET_COMPANY"             
 # [11] "OFFSET_RECID"                "OFFSET_TRANS_VOUCHER"        "PENNY_DIFF"                  "SETTLE_AMOUNT_CUR"           "SETTLE_AMOUNT_MST"          
 # [16] "SETTLE_TAX1099_AMOUNT"       "SETTLE_TAX1099_STATE_AMOUNT" "TRANS_COMPANY"               "TRANS_DATE"                  "TRANS_RECID"                
@@ -30,17 +30,18 @@ colnames(fv_voucher_df)
 
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
-fv_voucher_df %>% summarise_each(funs(100*mean(is.na(.)))) # %>% View # there are a few NA's in the data set.
+pv_voucher_df %>% summarise_each(funs(100*mean(is.na(.)))) # %>% View # there are a few NA's in the data set.
 
 
 ### COLUMNS THAT WE ARE INTERESTED IN....
 
-### ACCOUNT_NUM ###
-# string integer
+### KEY: ACCOUNT_NUM  
+# string integer 
+# match against the customer data.frame
 #
-filter(fv_voucher_df, is.na(as.integer(ACCOUNT_NUM))) %>% nrow # 0. all good)
+filter(pv_voucher_df, is.na(as.integer(ACCOUNT_NUM))) %>% nrow # 0. all good)
 
-account_num_col <- transmute(fv_voucher_df, account_num = as.integer(ACCOUNT_NUM))
+account_num_col <- transmute(pv_voucher_df, account_num = as.integer(ACCOUNT_NUM))
 
 summary(account_num_col)  # this is correct
 # account_num    
@@ -71,10 +72,10 @@ distinct(account_num_col, account_num) %>% nrow # 26
 # string numeric
 # 
 # how many NAs?
-filter(fv_voucher_df, is.na(UTILISED_CASH_DISC)) %>% nrow # 0.  No NAs
+filter(pv_voucher_df, is.na(UTILISED_CASH_DISC)) %>% nrow # 0.  No NAs
 
 # NEED TO REMOVE ANY $ OR , FROM THE STRING IN ORDER TO CONVERT TO NUMERIC!!!
-utilised_cash_disc_col <- transmute(fv_voucher_df, utilised_cash_disc = as.numeric(gsub('[$,]','',UTILISED_CASH_DISC))) 
+utilised_cash_disc_col <- transmute(pv_voucher_df, utilised_cash_disc = as.numeric(gsub('[$,]','',UTILISED_CASH_DISC))) 
 str(utilised_cash_disc_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	614 obs. of  1 variable:
 #   $ utilised_cash_disc: num  156.58 35.2 16.5 36.56 0.03 ...
@@ -93,9 +94,9 @@ summary(utilised_cash_disc_col)
 # string date + time 7/28/2015 19:55 also 2016-10-03 23:16:00 
 
 # test which dates dont fit the lubridate conversion
-filter(fv_voucher_df, is.na(parse_date_time(CREATE_DATE_TIME, c('%m/%d/%Y %H:%M', '%Y-%m-%d %H:%M:%S'), exact = TRUE))) %>% nrow # 0. all parsed successfully
+filter(pv_voucher_df, is.na(parse_date_time(CREATE_DATE_TIME, c('%m/%d/%Y %H:%M', '%Y-%m-%d %H:%M:%S'), exact = TRUE))) %>% nrow # 0. all parsed successfully
 
-create_date_time_col <- transmute(fv_voucher_df, create_date_time = parse_date_time(CREATE_DATE_TIME, c('%m/%d/%Y %H:%M', '%Y-%m-%d %H:%M:%S'), exact = TRUE))
+create_date_time_col <- transmute(pv_voucher_df, create_date_time = parse_date_time(CREATE_DATE_TIME, c('%m/%d/%Y %H:%M', '%Y-%m-%d %H:%M:%S'), exact = TRUE))
 
 str(create_date_time_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	614 obs. of  1 variable:
@@ -135,5 +136,5 @@ summary(xdf)
 # 3rd Qu.:100404   3rd Qu.:  66.89    3rd Qu.:2016-05-02 08:24:00  
 # Max.   :105633   Max.   :1677.59    Max.   :2017-09-01 18:10:00
 
-# write fv_voucher dataframe out as a feather file
-write_feather(xdf,"data/fv_voucher.feather")
+# write pv_voucher dataframe out as a feather file
+write_feather(xdf,"data/pv_voucher.feather")

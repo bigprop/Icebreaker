@@ -18,25 +18,27 @@ if (interactive()) View(customers)
 nrow(customers); ncol(customers)  # 676 rows, 23 cols
 
 colnames(customers)
-# [1] "CUSTOMER_ACCOUNT"              "NAME"                          "COMPANY_CHAIN"                 "CURRENCY"                     
-# [5] "CUR_CREDIT_LIMIT"              "CREDIT_LIMIT"                  "CUSTOMERS_PRICES_HANDLING"     "INVOICE_ACCOUNT"              
-# [9] "LINE_DISCOUNT"                 "LINE_OF_BUSINESS"              "MAIN_CUSTOMER_ACCOUNT"         "MANDATORY_CREDIT_LIMIT"       
+# [1] **"ACCOUNT_NUMBER"               "NAME"                          "COMPANY_CHAIN"                 "CURRENCY"                     
+# [5] "CUR_CREDIT_LIMIT"               "CREDIT_LIMIT"                  "CUSTOMERS_PRICES_HANDLING"     "INVOICE_ACCOUNT"              
+# [9] "LINE_DISCOUNT"                  "LINE_OF_BUSINESS"              "MAIN_CUSTOMER_ACCOUNT"         "MANDATORY_CREDIT_LIMIT"       
 # [13] "PRICE_GROUP"                   "PROJECT_CODE"                  "SALES_DISTRICT"                "STATISTICS_GROUP"             
 # [17] "SEGMENT"                       "SUBSEGMENT"                    "TERMS_OF_PAYMENT"              "VAS_CODES_GROUP"              
 # [21] "CUSTOMER_CLASSIFICATION_GROUP" "EDI_CODE"                      "TERMS_OF_BUSINESS"
+
+# ACCOUNT_NUMBER renamed from CUSTOMER_ACCOUNT is the key for this data.frame
 
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
 customers %>% summarise_each(funs(100*mean(is.na(.)))) # there are NA's in the data set.
 
 
-### "CUSTOMER_ACCOUNT" ###
+### KEY: "ACCOUNT_NUMBER"  renamed from CUSTOMER_ACCOUNT
 #  string integer
 # 
 # Get a count of the rows that fail conversion
 (fail_count <-customers %>% filter( is.na(as.integer(CUSTOMER_ACCOUNT)) ) %>% count()) # 0
 
-customer_account_col <- transmute(customers, customer_account = as.integer(CUSTOMER_ACCOUNT))
+customer_account_col <- transmute(customers, account_number = as.integer(CUSTOMER_ACCOUNT))
 summary(customer_account_col)
 # Min.   :100115              
 # 1st Qu.:100293              
@@ -46,9 +48,9 @@ summary(customer_account_col)
 # Max.   :106028
 
 # do some investigation on number of unique accounts and the aggregate counts
-(unique_cnt <- distinct(customer_account_col, customer_account) %>% nrow)  # 676
-# 
-#                
+(unique_cnt <- distinct(customer_account_col, account_number) %>% nrow)  # 676
+
+                
 # ### "NAME" ###                          
 # string
 # 
@@ -102,7 +104,7 @@ xdf %>% summarise(num_child = n()) %>% arrange(desc(num_child))
 # "CURRENCY"                     
 # string factor
 #
-currency_col <- transmute(customers, currency = as.factor(CURRENCY))
+currency_col <- transmute(customers, currency = as.factor(str_to_lower(CURRENCY)))
 summary(currency_col)
 # currency
 # AUD:293            
@@ -175,7 +177,7 @@ filter(credit_limit_col, is.na(credit_limit)) %>% nrow # 0
 # How many distinct COMPANY_CHAIN?
 # distinct(customers, CUSTOMERS_PRICES_HANDLING) %>% nrow  # 2
 
-# customers_prices_handling_col <- transmute(customers, customers_prices_handling = as.factor(CUSTOMERS_PRICES_HANDLING))
+# customers_prices_handling_col <- transmute(customers, customers_prices_handling = as.factor(str_to_lower(CUSTOMERS_PRICES_HANDLING)))
 # str(customers_prices_handling_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ customers_prices_handling: Factor w/ 2 levels "None","Unexpected number of columns %1 with the value %2": 1 1 1 1 1 1 1 1 1 1 ...
@@ -222,7 +224,7 @@ filter(invoice_account_col, is.na(invoice_account)) %>% nrow # 0
 # How many distinct LINE_DISCOUNT?
 distinct(customers, LINE_DISCOUNT) %>% nrow  # 20
 
-line_discount_col <- transmute(customers, line_discount = as.factor(LINE_DISCOUNT))
+line_discount_col <- transmute(customers, line_discount = as.factor(str_to_lower(LINE_DISCOUNT)))
 str(line_discount_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ line_discount: Factor w/ 19 levels "10% DISC","100% DISC",..: 7 NA NA 7 7 NA NA NA 7 7 ....
@@ -243,7 +245,7 @@ summary(line_discount_col)
 # How many distinct LINE_OF_BUSINESS?
 distinct(customers, LINE_OF_BUSINESS) %>% nrow  # 20
 
-line_of_business_col <- transmute(customers, line_of_business = as.factor(LINE_OF_BUSINESS))
+line_of_business_col <- transmute(customers, line_of_business = as.factor(str_to_lower(LINE_OF_BUSINESS)))
 str(line_of_business_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ line_of_business: Factor w/ 6 levels "DIRECT","DIST(B2B)",..: 4 6 1 4 4 1 1 6 4 4 ...
@@ -302,7 +304,7 @@ summary(mandatory_credit_limit_col)
 # How many distinct PRICE_GROUP?
 distinct(customers, PRICE_GROUP) %>% nrow  # 5
 
-price_group_col <- transmute(customers, price_group = as.factor(PRICE_GROUP))
+price_group_col <- transmute(customers, price_group = as.factor(str_to_lower(PRICE_GROUP)))
 str(price_group_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ price_group: Factor w/ 4 levels "LND","RT","WS",..: 3 3 3 3 3 3 2 3 3 3 ...
@@ -322,7 +324,7 @@ summary(price_group_col)
 # How many distinct PROJECT_CODE?
 distinct(customers, PROJECT_CODE) %>% nrow  # 20
 
-project_code_col <- transmute(customers, project_code = as.factor(PROJECT_CODE))
+project_code_col <- transmute(customers, project_code = as.factor(str_to_lower(PROJECT_CODE)))
 str(project_code_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ project_code: Factor w/ 19 levels "ANNAPURNA","APLINE",..: NA NA NA NA NA NA 6 NA NA NA ..
@@ -344,7 +346,7 @@ summary(project_code_col)
 # How many distinct SALES_DISTRICT?
 distinct(customers, SALES_DISTRICT) %>% nrow  # 28
 
-sales_district_col <- transmute(customers, sales_district = as.factor(SALES_DISTRICT))
+sales_district_col <- transmute(customers, sales_district = as.factor(str_to_lower(SALES_DISTRICT)))
 str(sales_district_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ sales_district: Factor w/ 27 levels "ACT","BRIS","MELB",..: 11 12 12 11 11 20 20 11 11 11 ...
@@ -366,7 +368,7 @@ summary(sales_district_col)
 # How many distinct STATISTICS_GROUP?
 distinct(customers, STATISTICS_GROUP) %>% nrow  # 5
 
-statistics_group_col <- transmute(customers, statistics_group = as.factor(STATISTICS_GROUP))
+statistics_group_col <- transmute(customers, statistics_group = as.factor(str_to_lower(STATISTICS_GROUP)))
 str(statistics_group_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ statistics_group: Factor w/ 5 levels "ICEBREAKER","INDEPENDEN",..: 5 3 2 5 5 5 5 2 5 5 ....
@@ -386,7 +388,7 @@ summary(statistics_group_col)
 # How many distinct SEGMENT?
 distinct(customers, SEGMENT) %>% nrow  # 12
 
-segment_col <- transmute(customers, segment = as.factor(SEGMENT))
+segment_col <- transmute(customers, segment = as.factor(str_to_lower(SEGMENT)))
 str(segment_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ segment: Factor w/ 12 levels "HUNTFISH","ICEBREAKER",..: 2 8 5 2 2 5 5 6 2 2 ..
@@ -408,7 +410,7 @@ summary(segment_col)
 # How many distinct SUBSEGMENT?
 distinct(customers, SUBSEGMENT) %>% nrow  # 23
 
-subsegment_col <- transmute(customers, subsegment = as.factor(SUBSEGMENT))
+subsegment_col <- transmute(customers, subsegment = as.factor(str_to_lower(SUBSEGMENT)))
 str(subsegment_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ subsegment: Factor w/ 23 levels "ALPINE","CORPORATE",..: 10 22 16 10 10 2 2 15 10 10 ...
@@ -430,7 +432,7 @@ summary(subsegment_col)
 # How many distinct TERMS_OF_PAYMENT?
 distinct(customers, TERMS_OF_PAYMENT) %>% nrow  # 17
 
-terms_of_payment_col <- transmute(customers, terms_of_payment = as.factor(TERMS_OF_PAYMENT))
+terms_of_payment_col <- transmute(customers, terms_of_payment = as.factor(str_to_lower(TERMS_OF_PAYMENT)))
 str(terms_of_payment_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ terms_of_payment: Factor w/ 16 levels "CM+1M(10)","CM+1M(25)",..: 16 5 5 16 16 5 15 5 16 16 ...
@@ -452,7 +454,7 @@ summary(terms_of_payment_col)
 # How many distinct VAS_CODES_GROUP?
 distinct(customers, VAS_CODES_GROUP) %>% nrow  # 3
 
-vas_codes_group_col <- transmute(customers, vas_codes_group = as.factor(VAS_CODES_GROUP))
+vas_codes_group_col <- transmute(customers, vas_codes_group = as.factor(str_to_lower(VAS_CODES_GROUP)))
 str(vas_codes_group_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ vas_codes_group: Factor w/ 2 levels "TICKET","TICKET_RRP": NA NA NA NA NA NA NA NA NA NA ...
@@ -470,7 +472,7 @@ summary(vas_codes_group_col)
 # How many distinct CUSTOMER_CLASSIFICATION_GROUP?
 distinct(customers, CUSTOMER_CLASSIFICATION_GROUP) %>% nrow  # 4
 
-customer_classification_group_col <- transmute(customers, customer_classification_group = as.factor(CUSTOMER_CLASSIFICATION_GROUP))
+customer_classification_group_col <- transmute(customers, customer_classification_group = as.factor(str_to_lower(CUSTOMER_CLASSIFICATION_GROUP)))
 str(customer_classification_group_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ customer_classification_group: Factor w/ 4 levels "A","B","C","D": 4 4 4 4 4 4 4 4 4 4 ...
@@ -484,25 +486,41 @@ summary(customer_classification_group_col)
 
  
 # "EDI_CODE"                      
-# string factor
+# string factor. want a flag to indicate 3point5, centrestone, direct EDI. extract from the edi_code
 #
 # How many distinct EDI_CODE?
-distinct(customers, EDI_CODE) %>% nrow  # 17
+xdf <- transmute(customers, edi_code = as.factor(str_to_lower(EDI_CODE)), edi_type = NA)
 
-edi_code_col <- transmute(customers, edi_code = as.factor(EDI_CODE))
+# work out the EDI type:  cs - centrestone, 3p5 - 3 point 5, remained are corporate edi 
+# search for suffix CS, 3P5
+#
+xdf$edi_type[ ! is.na(xdf$edi_code) ] <- "edi"
+xdf$edi_type[ str_detect(xdf$edi_code,"cs") ] <- "cs"
+xdf$edi_type[ str_detect(xdf$edi_code,"3p5") ] <- "3p5"  
+
+edi_code_col <- xdf
 str(edi_code_col)
-# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
-#   $ edi_code: Factor w/ 16 levels "ANZCS","AUS3P5",..: NA NA NA NA NA NA NA NA NA NA ...
-#   
+# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  2 variables:
+# $ edi_code: Factor w/ 16 levels "anzcs","aus3p5",..: NA NA NA NA NA NA NA NA NA NA ...
+# $ edi_type: chr  NA NA NA NA ...
+
 summary(edi_code_col)
-# edi_code  
-# ANZCS     : 47  
-# NZLRRSPORT: 14  
-# AUSSNOW   : 10  
-# NZL3P5    :  9  
-# AUS3P5    :  2  
-# (Other)   : 11  
+# edi_code     edi_type        
+# anzcs     : 47   Length:676        
+# nzlrrsport: 14   Class :character  
+# aussnow   : 10   Mode  :character  
+# nzl3p5    :  9                     
+# aus3p5    :  2                     
+# (Other)   : 11                     
 # NA's      :583
+
+# How many on each EDI type
+group_by(edi_code_col, edi_type) %>% summarise(the_count = n()) %>% arrange(desc(the_count))
+# edi_type the_count
+# 1     <NA>       583
+# 2       cs        47
+# 3      edi        35
+# 4      3p5        11
 
 
 # "TERMS_OF_BUSINESS"
@@ -511,7 +529,7 @@ summary(edi_code_col)
 # How many distinct TERMS_OF_BUSINESS?
 distinct(customers, TERMS_OF_BUSINESS) %>% nrow  # 3
 
-terms_of_business_col <- transmute(customers, terms_of_business = as.factor(TERMS_OF_BUSINESS))
+terms_of_business_col <- transmute(customers, terms_of_business = as.factor(str_to_lower(TERMS_OF_BUSINESS)))
 str(terms_of_business_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	676 obs. of  1 variable:
 #   $ terms_of_business: Factor w/ 3 levels "Consignment",..: 3 2 3 3 3 3 3 3 3 3 ...
@@ -532,13 +550,13 @@ summary(terms_of_business_col)
 # [21] "CUSTOMER_CLASSIFICATION_GROUP" "EDI_CODE"                      "TERMS_OF_BUSINESS
 
 xdf <- cbind(
-      customer_account_col,
+      customer_account_col, # key: account_number for matching
       name_col,
       company_chain_col,
       currency_col,
       cur_credit_limit_col,
       credit_limit_col,
-#    customers_prices_handling_col,  # doesnt contain any useful information
+#     customers_prices_handling_col,  # doesnt contain any useful information
       invoice_account_col,
       line_discount_col,
       line_of_business_col,
@@ -560,7 +578,7 @@ if (interactive()) View(xdf) # lets look at the final data frame...
 
 str(xdf)
 # 'data.frame':	676 obs. of  23 variables:
-# $ customer_account             : int  100616 100617 100618 100620 100621 100622 100623 100624 100625 100626 ...
+# $ account_number               : int  100616 100617 100618 100620 100621 100622 100623 100624 100625 100626 ...
 # $ name                         : chr  "Scott McNab" "Shoe Clinic Masterton" "The Catwalk Trust - Staff" "Maya Brown (Gaebler)" ...
 # $ company_chain                : Factor w/ 20 levels "3Point5","3POINT5",..: NA 18 NA NA NA NA NA NA NA NA ...
 # $ currency                     : Factor w/ 2 levels "AUD","NZD": 2 2 2 2 2 2 2 2 2 2 ...
@@ -585,7 +603,7 @@ str(xdf)
 # $ terms_of_business            : Factor w/ 3 levels "Consignment",..: 3 2 3 3 3 3 3 3 3 3 ...
 
 summary(xdf)
-# customer_account     name                    company_chain currency            cur_credit_limit  credit_limit   
+# account_number     name                    company_chain currency            cur_credit_limit  credit_limit   
 # Min.   :100115   Length:676         Mountain Designs: 38   AUD:293             Min.   :     0   Min.   :     0  
 # 1st Qu.:100293   Class :character   Snowgum         : 28   NZD:383             1st Qu.:     0   1st Qu.:     0  
 # Median :100468   Mode  :character   SHOE CLINIC     : 15                       Median :  5000   Median :  5433  

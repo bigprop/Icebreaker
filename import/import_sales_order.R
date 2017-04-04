@@ -62,45 +62,67 @@ summary(order_type_col)
 
 ### SALES_ORDER ###
 # test for structure SOnnnnnnnn. e.g SO00080074.  also contains sales returns... SRnnnnn.  Also orders without a prefix!
-# extract the numeric part and test convert to integer  
+# convert to a factor
+# 
+# there is overlap between SO and SR eg SO00017313 and SR00017313  
+# 
+# test that there are no duplicates when including prefix
+group_by(sales_order_df, SALES_ORDER) %>% filter(n() > 1) %>% nrow # 0.  no duplicates
 
-# investigate the SALES_ORDER prefix.  check that SO is the only prefix
-distinct(sales_order_df, prefix = str_sub(SALES_ORDER,1,2)) # "SO", "SR"
+# investigate the SALES_ORDER prefix. 
+distinct(sales_order_df, prefix = str_sub(SALES_ORDER,1,2)) # "SO", "SR".  some have no prefix
 
-# Get a count of the rows that would fail pattern match
-filter(sales_order_df, !str_detect(SALES_ORDER, '^[A-Z]{2}\\w+')) # %>% nrow # 184  e.g. 167988
+# what is the numeric range for each of SO, SR and no prefix?
+(xdf <- filter(sales_order_df, str_detect(SALES_ORDER, "SO"))) %>% nrow # 83442
+xdf <- transmute(xdf, so = as.integer(str_sub(SALES_ORDER, 3))) %>% arrange(so)
+summarise(xdf, min(so), max(so))
+# `min(so)` `max(so)`
+# <int>     <int>
+#   104  90004020
 
-# !!!! lets put the SO prefix back in for the rows where it is missing !!! Is this the correct approach?
-# xdf <- transmute(sales_order_df, sales_order= ifelse(str_detect(SALES_ORDER,"^[A-Z]{2}"), SALES_ORDER, paste0("SO",SALES_ORDER)))
+(ydf <- filter(sales_order_df, str_detect(SALES_ORDER, "SR"))) %>% nrow # 11
+ydf <- transmute(ydf, so = as.integer(str_sub(SALES_ORDER, 3))) %>% arrange(so)
+summarise(ydf, min(so), max(so))
+# `min(so)` `max(so)`
+# <int>     <int>
+#   1     15834     17448
 
-# perhaps a better approach is to create the prefix and sales_order columns separately
-sales_order_prefix <- transmute(sales_order_df, sales_order_prefix = as.factor(ifelse(str_detect(SALES_ORDER,"^[A-Z]{2}"), str_sub(SALES_ORDER,1,2), NA)))
-summary(sales_order_prefix)
+# need to check if there are any actual overlap numbers!  Yes.
+intersect(xdf$so, ydf$so) #  17313 17368 17386 17387 17417 17425
 
-sales_order_no <- transmute(sales_order_df, sales_order = as.integer(ifelse(str_detect(SALES_ORDER,"^[A-Z]{2}"), str_sub(SALES_ORDER,3), SALES_ORDER)))
-summary(sales_order_no)
+# suggest that the best approach is to convert the sales order to a factor which will maintain the uniqueness between SO and SR with the same number
+sales_order_col <- transmute(sales_order_df, sales_order = as.factor(str_to_lower(SALES_ORDER)))
 
-sales_order_col = cbind(sales_order_prefix, sales_order_no, sales_order_unmodifed=sales_order_df$SALES_ORDER)
 str(sales_order_col)
-# 'data.frame':	83637 obs. of  3 variables:
-# $ prefix               : Factor w/ 2 levels "SO","SR": 1 1 1 1 1 1 1 1 1 1 ...
-# $ sales_order          : int  80074 80075 80077 80078 80080 80081 80083 88725 88726 88727 ...
-# $ sales_order_unmodifed: chr  "SO00080074" "SO00080075" "SO00080077" "SO00080078" ...
+# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	83637 obs. of  1 variable:
+# $ sales_order: Factor w/ 83637 levels "107048","107050",..: 44796 44797 44798
+
+# ORIGINAL APPROACH
+# create the prefix and sales_order columns separately
+#sales_order_prefix <- transmute(sales_order_df, sales_order_prefix = as.factor(ifelse(str_detect(SALES_ORDER,"^[A-Z]{2}"), str_sub(SALES_ORDER,1,2), NA)))
+#summary(sales_order_prefix)
+# sales_order_prefix
+# SO  :83442        
+# SR  :   11        
+# NA's:  184 
+
+#sales_order_no <- transmute(sales_order_df, sales_order = as.integer(ifelse(str_detect(SALES_ORDER,"^[A-Z]{2}"), str_sub(SALES_ORDER,3), SALES_ORDER)))
+#summary(sales_order_no)
+# sales_order      
+# Min.   :     104  
+# 1st Qu.:   34216  
+# Median :   74827  
+# Mean   : 1837586  
+# 3rd Qu.:  123962  
+# Max.   :90004020
+
+#sales_order_col = cbind(sales_order_prefix, sales_order_no)
+#str(sales_order_col)
+# 'data.frame':	83637 obs. of  2 variables:
+# $ sales_order_prefix: Factor w/ 2 levels "SO","SR": 1 1 1 1 1 1 1 1 1 1 ...
+# $ sales_order       : int  80074 80075 80077 80078 80080 80081 80083 88725
 
 
-# do we expect no dups?
-group_by(sales_order_col, sales_order) %>% filter( n() > 1) %>% nrow # 192 duplicates
-
-summary(sales_order_col)
-# prefix       sales_order       sales_order_unmodifed
-# SO  :83442   Min.   :     104   Length:83637         
-# SR  :   11   1st Qu.:   34216   Class :character     
-# NA's:  184   Median :   74827   Mode  :character     
-#              Mean   : 1837586                        
-#              3rd Qu.:  123962                        
-#              Max.   :90004020
-
- 
 ### CUSTOMER_ORDER_GROUP ###
 # string factor
 # 
@@ -311,8 +333,8 @@ summary(country_region_col)
 
 ### BIND INTO A NEW DATAFRAME
 xdf <- cbind(
-      order_type_col,
       sales_order_col,
+      order_type_col,
       cust_order_group_col,
       account_mgr_col,
       name_col,

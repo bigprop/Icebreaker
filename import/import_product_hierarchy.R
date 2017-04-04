@@ -37,7 +37,7 @@ product_hierarchy_in %>% summarise_each(funs(100*mean(is.na(.)))) # 0.  No NA
 # remove duplicates for product_hierarchy arranged by STYLE
 product_hierarchy <- slice(xdf, 1:1) %>% ungroup() # choose just the first row from each group...omitting the duplicates 
 
-style_col <- transmute(product_hierarchy, style = as.factor(STYLE))
+style_col <- transmute(product_hierarchy, style = as.factor(str_to_lower(STYLE)))
 
 str(style_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	2340 obs. of  1 variable:

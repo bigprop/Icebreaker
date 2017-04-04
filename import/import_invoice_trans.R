@@ -19,7 +19,7 @@ nrow(invoice_trans); ncol(invoice_trans)  # 513153 row, 11 col
 
 # column names
 colnames(invoice_trans)
-# [1] "SALES_ID"                     "DOCUMENT_NUMBER__INVOICE_ID_" "CURRENCY_CURRENCY_CODE"       "ITEM_ID"                     
+# [1] **"SALES_ORDER"                **"INVOICE_NUMBER"             "CURRENCY_CURRENCY_CODE"       "ITEM_ID"                     
 # [5] "STYLE_NAME"                   "LINE_AMT_PRE_DISCOUNT"        "LINE_AMT_POST_DISCOUNT"       "INVOICED_DISCOUNT_ACY"       
 # [9] "COGS"                         "INVOICED_QTY"                 "SALES_PRICE"
 
@@ -29,30 +29,50 @@ invoice_trans %>% summarise_each(funs(100*mean(is.na(.)))) # all data intact. No
 
 
 
-# "SALES_ID"  change to invoice_number to match with invoice journal
-# string prefixed integer:  SO00117238.  pattern SOnnnnnnnn
+# "SALES_ORDER"  changed from SALES_ID
+# string prefixed integer:  SO00117238.  pattern SOnnnnnnnn.  
 # 
-# Group_by Aggregate raw SALES_ID to find top/bottom 5 total SALES_ID by transactions
-select(invoice_trans, SALES_ID) %>% group_by(SALES_ID) %>% dplyr::summarise(the_count = n()) %>% arrange(desc(the_count)) %>% head(5) # 1..470
+# sales order table contains SO and SR with matching sales order numbers. 
+# need to manage as a factor to maintain uniqueness
+# 
+# Every SALES_ORDER row here should match a single SALES_ORDER row in the invoice journal table
+# As expected multiple rows for a given SALES_ORDER (1:1 with INVOICE_NUMBER)
+# 
+# SALES_ORDER "SO00159567" aka INVOICE_NUMBER "SCN0019699", has a total of 470 rows for line items
+# note the invoice type for a sales order can be either CSI (sale) or SCN (return).
+# could potentially match to invoice journal with either the sales_order or the invoice_number
+# 
+# i think that sales_order seems more natural as line items are associated with an order
+# and this should link all the way back to the sales order table where it all starts!
+
+# Test for NA
+filter(invoice_trans, is.na(SALES_ID)) %>% nrow # 0
+
+# investigate the SALES_ID prefix.  check that SO is the only prefix
+transmute(invoice_trans, prefix = str_sub(SALES_ID,1,2)) %>% distinct() # SO
+
+# check for duplicates. yes
+(xdf <- group_by(invoice_trans, SALES_ID) %>% summarise(the_count = n()) %>% arrange(desc(the_count))) %>% filter(the_count > 1) %>% nrow # 23505
+xdf %>% head
 # SALES_ID the_count
-#         <chr>     <int>
+# <chr>     <int>
 # 1 SO00159567       470
 # 2 SO00162649       470
 # 3 SO00165971       449
 # 4 SO00171378       449
 # 5 SO00171379       449
+# 6 SO00162631       446
 
-# investigate the SALES_ID prefix.  check that SO is the only prefix
-transmute(invoice_trans, prefix = str_sub(SALES_ID,1,2)) %>% distinct() # SO
+if (interactive()) View(xdf)
+
+xdf <- filter(invoice_trans, SALES_ID == "SO00159567" )
+if (interactive()) View(xdf)
 
 # Get a count of the rows that would fail pattern match
-(fail_count <- filter(invoice_trans, !str_detect(SALES_ID, '^SO\\d{8}$')) %>% nrow()) # 0.  no failures
+# (fail_count <- filter(invoice_trans, !str_detect(SALES_ID, '^SO\\d{8}$')) %>% nrow()) # 0.  no failures
 
-# test that all remaining digits will convert to integer
-(fail_count <- filter(invoice_trans, is.na(as.integer(str_sub(SALES_ID, 3)))) %>% nrow) # 0.  no failures.
-
-# strip out the 2 char to prefix and number string to an integer invoice number
-sales_id_col <- transmute(invoice_trans, sales_order = as.integer(str_sub(SALES_ID, 3)))  # changing field name so that it match the invoice journal
+# convert to a factor to match the invoice journal and sales order data.frames
+sales_id_col <- transmute(invoice_trans, sales_order = as.factor(str_to_lower(SALES_ID)))  # changing field name so that it match the invoice journal & sales order data.frames
 
 str(sales_id_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	513153 obs. of  1 variable:
@@ -72,8 +92,8 @@ summary(sales_id_col)
 # filter(invoice_trans, SALES_ID == "SO00045988") %>% View
 # filter(invoice_trans, SALES_ID == "SO90003867") %>% View
 
-# Whats the distribution of transaction per SALES_ID ie invoice_number
-(xdf <- group_by(sales_id_col, invoice_number) %>% dplyr::summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+# Whats the distribution of transaction per SALES_ORDER
+(xdf <- group_by(sales_id_col, sales_order) %>% dplyr::summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
 # Histogram of the SALES_ID aggregation
 ggplot(xdf, aes(the_count)) + geom_histogram(bins = 50)
@@ -96,24 +116,40 @@ quantile(P, probs = 0.95) # 59.  95% of sales_id have 1..59 entries.  ie only 5%
 (1.0 - P(100)) * nrow(xdf)  # 720 sales_id have 100+ entries.  high volume.
 
 
-#"DOCUMENT_NUMBER__INVOICE_ID_" 
+# "INVOICE_NUMBER"   renamed from DOCUMENT_NUMBER__INVOICE_ID_
+#  
 # string prefixed factor + integer. this is actually the INVOICE_NUMBER
-# e.g CSI0131417  aaannnnnnn
+#  two prefix CSI and SCN pattern 'aaannnnnnn'
+#
+# Test for NA
+filter(invoice_trans, is.na(DOCUMENT_NUMBER__INVOICE_ID_)) %>% nrow # 0
+
+distinct(invoice_trans, str_sub(DOCUMENT_NUMBER__INVOICE_ID_,1,3)) # CSI, SCN
 
 (fail_count <- filter(invoice_trans, !str_detect(DOCUMENT_NUMBER__INVOICE_ID_, '^[A-Z]{3}\\d{7}')) %>% nrow()) # 0.  all good
 
-document_number_invoice_id_col <- transmute(invoice_trans, document_number_prefix = as.factor(str_sub(DOCUMENT_NUMBER__INVOICE_ID_,1,3)), document_number_suffix = as.integer(str_sub(DOCUMENT_NUMBER__INVOICE_ID_,4)))
+document_number_invoice_id_col <- transmute(invoice_trans, 
+                                            invoice_prefix = as.factor(str_to_lower(str_sub(DOCUMENT_NUMBER__INVOICE_ID_,1,3))), 
+                                            invoice_number = as.factor(str_to_lower(DOCUMENT_NUMBER__INVOICE_ID_)))
 
 str(document_number_invoice_id_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	513153 obs. of  2 variables:
-# $ document_number_prefix: Factor w/ 2 levels "CSI","SCN": 1 1 1 1 1 1 1 1 1 1 ...
-# $ document_number_suffix: chr  "0128464" "0130313" "0132360" "0128357" ..
+# $ invoice_prefix: Factor w/ 2 levels "csi","scn": 1 1 1 1 1 1 1 1 1 1 ...
+# $ invoice_number: Factor w/ 44302 levels "csi0089455","csi0089456",..: 254782
 
 summary(document_number_invoice_id_col)
-# document_number_prefix document_number_suffix
-# CSI:421045             Length:513153         
-# SCN: 92108             Class :character      
-#                        Mode  :character
+# invoice_prefix    invoice_number  
+# csi:421045     csi0171328:   470  
+# scn: 92108     scn0019699:   470  
+#                csi0179888:   449  
+#                scn0020524:   449  
+#                scn0020964:   449  
+#                csi0174401:   446  
+#                (Other)   :510420
+
+# have a look at an entry that is a SCN
+xdf <- filter(invoice_trans, DOCUMENT_NUMBER__INVOICE_ID_ == "SCN0019699")
+if (interactive()) View(xdf)
 
  
 ### "CURRENCY_CURRENCY_CODE" ### 
@@ -130,7 +166,7 @@ currency_currency_code <- select(invoice_trans, currency_code = CURRENCY_CURRENC
 # How many distinct ITEM_ID?
 select(invoice_trans, ITEM_ID) %>% distinct(ITEM_ID) %>% nrow  # 1535
 
-item_id_col <- transmute(invoice_trans, style = as.factor(ITEM_ID)) # NOTE: we change name to style so that it matches with product hierarchy
+item_id_col <- transmute(invoice_trans, style = as.factor(str_to_lower(ITEM_ID))) # NOTE: we change name to style so that it matches with product hierarchy
 str(item_id_col)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	513153 obs. of  1 variable:
 #   $ item_id: Factor w/ 1535 levels "100003","100006",..: 557 126 553 58 119 126 155 189 269 306 ...
@@ -319,7 +355,6 @@ filter(invoiced_qty_col, invoiced_qty == 0) %>% nrow # 0
 filter(invoiced_qty_col, is.na(invoiced_qty)) %>% nrow # 0
 
 
-
 ### "SALES_PRICE" ###
 # string numeric
 # 
@@ -357,17 +392,18 @@ filter(sales_price_col, is.na(sales_price)) %>% nrow # 0
 # 
 # 
 xdf <- cbind(
-    sales_id_col,       # invoice_number  
-    document_number_invoice_id_col,
-    currency_currency_code,
-    style_name_col,     # style name
-    item_id_col,        # style
+    sales_id_col,       # sales_order 
+    document_number_invoice_id_col, # invoice_number
+    invoiced_qty_col,
+    cogs_col,
+    sales_price_col,    
     line_amt_pre_discount_col,
     line_amt_post_discount_col,
     invoiced_discount_acy_col,
-    cogs_col,
-    invoiced_qty_col,
-    sales_price_col) %>% arrange(style)  # sorted by ascending style (in the item_id_col) this will join with the product hierarchy
+    currency_currency_code,    
+    item_id_col,        # style   
+    style_name_col     # style name  
+    ) %>% arrange(style)  # sorted by ascending style (in the item_id_col) this will join with the product hierarchy
 
 if (interactive()) View(xdf)
 

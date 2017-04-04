@@ -22,19 +22,23 @@ if (interactive()) View(cust_settlement)
 nrow(cust_settlement); ncol(cust_settlement)  # 197436 rows, 9 cols
 
 colnames(cust_settlement)
-# [1] "ACCOUNT"            "ACCOUNT_NUMBER"     "OFFSET_VOUCHER"     "DATE_OF_SETTLEMENT" "DUE_DATE"           "AMOUNT_SETTLED"     "SETTLED_CURRENCY"   "COMPANY_ACCOUNTS"  
-# [9] "COMPANY_ACCOUNTS2"
+# [1] "ACCOUNT"    "**ACCOUNT_NUMBER"     "OFFSET_VOUCHER"     "DATE_OF_SETTLEMENT" "DUE_DATE"           "AMOUNT_SETTLED"     "SETTLED_CURRENCY"   
+# [8] "COMPANY_ACCOUNTS"  "COMPANY_ACCOUNTS2"
+
+# columns that we are interested in for new data.frame
+# [1] **"ACCOUNT_NUMBER"    "OFFSET_VOUCHER"     "DATE_OF_SETTLEMENT" "DUE_DATE"           "AMOUNT_SETTLED"
+ 
 
 
 ### HOW MUCH MISSING DATA in THE TIBBLE???? ####
 cust_settlement %>% summarise_each(funs(100*mean(is.na(.)))) # No NA's in the data set
 
 
-### "ACCOUNT"            
+### "ACCOUNT"   not used as it is a dup of ACCOUNT_NUMBER         
 # string integer
 # 
 # Get a count of the rows that fail conversion
-cust_settlement %>% filter( is.na(as.integer(ACCOUNT))) %>% nrow # 0
+#cust_settlement %>% filter( is.na(as.integer(ACCOUNT))) %>% nrow # 0
 
 # CONSIDER USING 'READR' PACKAGE PARSE_* FUNCTIONS TO CREATE VECTORS AND THEN BIND THEM AND COERCE INTO A TIBBLE
 # x <- parse_integer(cust_settlement$ACCOUNT)
@@ -42,8 +46,8 @@ cust_settlement %>% filter( is.na(as.integer(ACCOUNT))) %>% nrow # 0
 # xdf <- as_tibble(cbind(first_col = x, second_col = y))
 # summary (x)
 
-account_col <- transmute(cust_settlement, account = as.integer(ACCOUNT))
-summary(account_col)
+#account_col <- transmute(cust_settlement, customer_account = as.integer(ACCOUNT))
+#summary(account_col)
 # Min.   :100115              
 # 1st Qu.:100293              
 # Median :100468              
@@ -52,11 +56,11 @@ summary(account_col)
 # Max.   :106028
 
 # do some investigation on number of unique accounts and the aggregate counts
-distinct(account_col, account) %>% nrow  # 371
+#distinct(account_col, account) %>% nrow  # 371
  
 
 
-### "ACCOUNT_NUMBER"     
+### **"ACCOUNT_NUMBER"
 # string integer
 # 
 # Get a count of the rows that fail conversion
@@ -72,38 +76,27 @@ summary(account_number_col)
 # Max.   :106028
 
 # do some investigation on number of unique accounts and the aggregate counts
-distinct(account_col, account) %>% nrow  # 371
+distinct(account_number_col, account_number) %>% nrow  # 371
+
+# is any difference between account and account_number columns?
+filter(cust_settlement, ACCOUNT != ACCOUNT_NUMBER) %>% nrow # 0. so both columns contain the same data.
 
 
 ### "OFFSET_VOUCHER"     
-# prefix factor + string integer.  prefix varies PV, SCV, CIV 
-
-# investigating gsub
-# gsub("\\d+","", "PCI209") # replace the digits with "" leaving the prefix
-# gsub("\\D+","", "PCI209") # replace the !digits with "" leaving the digits
-
-transmute(cust_settlement, offset_voucher_prefix = gsub("\\d+","", OFFSET_VOUCHER)) %>% distinct(offset_voucher_prefix)
-# offset_voucher_prefix
-# <chr>
-# 1                   CIV
-# 2                   SCV
-# 3                   GJI
-# 4                    PV
-# 5                   FCV
-# 6                   GJV
-# 7                 TVNMD
-# 8                   FTI
-# 9                  IANZ
-
-offset_voucher_col <- transmute(cust_settlement, 
-                                offset_voucher_prefix = as.factor(gsub("\\d+","", OFFSET_VOUCHER)), # remove digits
-                                offset_voucher = as.integer(gsub("\\D+","", OFFSET_VOUCHER)))       # remove non digits
-str(offset_voucher_col)
+# prefix + integer. convert to a factor.  prefix varies PV, SCV, CIV.  
+# generate the prefix + integer summary for information purposes
+#
+#
+# transmute(cust_settlement, offset_voucher_prefix = gsub("\\d+","", OFFSET_VOUCHER)) %>% distinct(offset_voucher_prefix)
+xdf <- transmute(cust_settlement, 
+                 prefix = as.factor(gsub("\\d+","", OFFSET_VOUCHER)),     # remove digits
+                 voucher = as.integer(gsub("\\D+","", OFFSET_VOUCHER)))   # remove non digits
+str(xdf)
 # Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	197436 obs. of  2 variables:
 # $ offset_voucher_prefix: Factor w/ 9 levels "CIV","FCV","FTI",..: 1 1 1 1 1 1 1 1 1 1 ...
 # $ offset_voucher       : int  92087 92125 92125 92126 92126 93300 93639 94466 95040 95886 ...
 
-summary(offset_voucher_col)
+summary(xdf)
 # offset_voucher_prefix offset_voucher  
 # CIV    :112640        Min.   :     4  
 # PV     : 57430        1st Qu.: 32990  
@@ -112,6 +105,21 @@ summary(offset_voucher_col)
 # FCV    :  3167        3rd Qu.:120135  
 # GJV    :  2492        Max.   :178031  
 # (Other):   580 
+
+offset_voucher_col <- transmute(cust_settlement, offset_voucher = as.factor(str_to_lower(OFFSET_VOUCHER)))
+str(offset_voucher_col)
+# Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	197436 obs. of  1 variable:
+#   $ as.factor(str_to_lower(OFFSET_VOUCHER)): Factor w/ 58855 levels "civ0000175","civ0000223",..: 7360 7362 7362 7363 7363 7972 8223 8719 9106 9534 ...
+
+summary(offset_voucher_col)
+# offset_voucher  
+# pv00029276:  1378  
+# pv00044729:  1289  
+# pv00022738:  1278  
+# pv00037395:   932  
+# pv00040921:   798  
+# pv00025516:   707  
+# (Other)   :191054
 
 
 ### "DATE_OF_SETTLEMENT" 
@@ -174,12 +182,12 @@ summary(amount_settled_col)
 
 
 ### BIND INTO A NEW DATAFRAME / TIBBLE
-# [1] "ACCOUNT"            "ACCOUNT_NUMBER"     "OFFSET_VOUCHER"     "DATE_OF_SETTLEMENT" "DUE_DATE"           "AMOUNT_SETTLED"
+# [1] "ACCOUNT_NUMBER"     "OFFSET_VOUCHER"     "DATE_OF_SETTLEMENT" "DUE_DATE"           "AMOUNT_SETTLED"
 
 
 xdf <- cbind(
-      account_col,
-      account_number_col,
+      #account_col,         
+      account_number_col,   # key: account_number for matching
       offset_voucher_col,
       date_of_settlement_col,
       due_date_col,
@@ -188,23 +196,12 @@ xdf <- cbind(
 if (interactive()) View(xdf) # lets look at the final data frame...
 
 str(xdf)
-# 'data.frame':	197436 obs. of  7 variables:
-# $ account                : int  100115 100115 100115 100115 100115 100115 100115 100115 100115 100115 ...
-# $ account_number         : int  100115 100115 100115 100115 100115 100115 100115 100115 100115 100115 ...
-# $ offset_voucher_prefix  : Factor w/ 9 levels "CIV","FCV","FTI",..: 1 1 1 1 1 1 1 1 1 1 ...
-# $ offset_voucher         : int  92087 92125 92125 92126 92126 93300 93639 94466 95040 95886 ...
-# $ dmy(DATE_OF_SETTLEMENT): Date, format: "2015-05-31" "2015-05-31" "2015-05-31" "2015-05-31" ...
-# $ due_date               : Date, format: "2015-05-31" "2015-05-31" "2015-05-31" "2015-05-31" ...
-# $ amount_settled         : num  9.16 -0.51 0.9 -3.14 5.56 ...
-
-summary(xdf)
-# account       account_number   offset_voucher_prefix offset_voucher   dmy(DATE_OF_SETTLEMENT)    due_date          amount_settled     
-# Min.   :100115   Min.   :100115   CIV    :112640        Min.   :     4   Min.   :2015-04-01      Min.   :2009-09-28   Min.   :-534805.3  
-# 1st Qu.:100188   1st Qu.:100188   PV     : 57430        1st Qu.: 32990   1st Qu.:2015-08-26      1st Qu.:2015-08-04   1st Qu.:    -47.1  
-# Median :100357   Median :100357   SCV    : 16256        Median : 71910   Median :2016-01-21      Median :2015-12-31   Median :      0.0  
-# Mean   :100819   Mean   :100819   GJI    :  4871        Mean   : 76228   Mean   :2016-01-28      Mean   :2016-01-10   Mean   :      0.2  
-# 3rd Qu.:100524   3rd Qu.:100524   FCV    :  3167        3rd Qu.:120135   3rd Qu.:2016-06-30      3rd Qu.:2016-06-20   3rd Qu.:     47.1  
-# Max.   :106028   Max.   :106028   GJV    :  2492        Max.   :178031   Max.   :2016-12-31      Max.   :2017-03-31   Max.   : 534805.3 
+# 'data.frame':	197436 obs. of  5 variables:
+# $ account_number    : int  100115 100115 100115 100115 100115 100115 100115 100115 100115 100115 ...
+# $ offset_voucher    : Factor w/ 58855 levels "civ0000175","civ0000223",..: 7360 7362 7362 7363 7363 7972 8223 8719 9106 9534 ...
+# $ date_of_settlement: Date, format: "2015-05-31" "2015-05-31" "2015-05-31" "2015-05-31" ...
+# $ due_date          : Date, format: "2015-05-31" "2015-05-31" "2015-05-31" "2015-05-31" ...
+# $ amount_settled    : num  9.16 -0.51 0.9 -3.14 5.56 ...
 
 # write customer out as a feather file
 write_feather(xdf,"data/cust_settlement.feather")
