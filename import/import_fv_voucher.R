@@ -56,7 +56,7 @@ distinct(account_num_col, account_num) %>% nrow # 26
 
 
 # Top five customer account by number of transactions
-(xdf <- group_by(account_num_col, account_num) %>% summarise(the_count = n(), log_count = log10(the_count))) %>% arrange(desc(the_count)) %>% head(10)
+(xdf <- group_by(account_num_col, account_num) %>% summarise(the_count = n(), log2_count = log2(the_count))) %>% arrange(desc(the_count)) %>% head(10)
 
 # account_num the_count log_count
 # <int>     <int>     <dbl>
