@@ -1,0 +1,233 @@
+#### CREATE_Profitability DataSet ####
+
+rm(list = ls()) # clear the workspace as a precaution
+
+require(feather)
+require(plyr)   # load plyr before dplyr (tidyverse) so can use the merge function
+require(tidyverse)
+require(stringr)
+require(e1071)
+require(zoo)
+# require(bit64)
+
+(invoice_trans <- read_feather("invoice_trans.feather")) #%>% View
+(invoice_journal <- read_feather("invoice_journal.feather")) #%>% View
+(customer <- read_feather("customer.feather")) #%>% View
+(cost_reference_table <- read_feather("cost_reference_table.feather")) #%>% View
+(sales_order <- read_feather("sales_order.feather")) #%>% View
+(return_reason_codes <- read_feather("return_reason_codes.feather"))
+(cust_settlement <- read_feather("cust_settlement.feather"))
+(fv_voucher <- read_feather("fv_voucher.feather"))
+(season_dates <- read_feather("season_dates.feather"))
+# options(scipen=999) # force not to use scientific notation for number display
+# options(scipen=0) # default value
+
+#Split the invoice trans dataframe so freight charge line items are in a separate data frame
+invoice_trans$freight_tf <- ifelse(invoice_trans$style_name == 'Freight Charged',1, 0)
+invoice_trans_list <- split(invoice_trans, invoice_trans$freight_tf)
+invoice_trans <- invoice_trans_list[[1]]
+freight_revenue_trans <- invoice_trans_list[[2]] 
+rm(invoice_trans_list)
+
+
+#Count the number of line items per invoice
+line_items_count <- as.data.frame(table(invoice_trans$sales_order))
+colnames(line_items_count) <- c("sales_order", "line_items_count")
+
+#Sum quantity and COGs per invoice in the Invoice trans table
+invoice_trans_sum <- ddply(invoice_trans,c("document_number_prefix", "document_number_suffix"),summarise,invoice_qty = sum(invoiced_qty, na.rm=TRUE),cogs=sum(cogs, na.rm=TRUE))
+
+#Summarise the freight line trans by invoice number
+freight_revenue_trans <- ddply(freight_revenue_trans,c("document_number_prefix", "document_number_suffix"), summarise,freight_revenue_1= sum(line_amt_post_discount,na.rm=TRUE))
+
+#Join the quantity and COGS columns to the CUSTOMER_INVOICE_JOURNAL
+invoice_journal_costs <- merge(invoice_journal,invoice_trans_sum,by.x=c("invoice_prefix","invoice_number"),by.y=c("document_number_prefix","document_number_suffix"),all.x=TRUE,all.y=FALSE)
+#Join the freight line item charges to CUSTOMER INVOICE JOURNAL
+invoice_journal_costs <- merge(invoice_journal_costs,freight_revenue_trans,by.x=c("invoice_prefix","invoice_number"),by.y=c("document_number_prefix","document_number_suffix"),all.x=TRUE,all.y=FALSE)
+#Join the line items count to the CUSTOMER_INVOICE_JOURNAL
+invoice_journal_costs <- merge(invoice_journal_costs,line_items_count,by="sales_order",all.x=TRUE,all.y=FALSE)
+
+#Remove Free text invoices from the invoice journal
+#Tag free text journal entries as 1 and everything else as 0
+invoice_journal_costs$journal_tf <- ifelse(invoice_journal_costs$order_type == 'Journal',1, 0)
+
+#Split the INVOICE JOURNALdataframe so free text journal entries have its own dataframe
+invoice_journal_list <- split(invoice_journal_costs, invoice_journal_costs$journal_tf)
+invoice_journal_costs <- invoice_journal_list[[1]]
+free_text_invoice_journal <- invoice_journal_list[[2]] 
+rm(invoice_journal_list)
+
+#Added required fields from Customer table
+#Join VAS and EDI codes to the invoice journal for calculation of costs
+invoice_journal_costs <- merge(invoice_journal_costs,customer[,c("customer_account","vas_codes_group","edi_code")],by="customer_account",all.x=TRUE,all.y=FALSE)
+
+#Add required fields from warehousing costs
+# Merge the warehousing cost per units depending on department
+invoice_journal_costs <- merge(invoice_journal_costs,cost_reference_table,by.x="department",by.y="region",all.x=TRUE,all.y=FALSE)
+
+#Merge required sales order details
+#Create correct sales order table
+sales_order <- sales_order[!is.na(sales_order$sales_order_prefix),]
+invoice_journal_costs <- merge(invoice_journal_costs,sales_order[c("sales_order","cust_order_group","account_mgr","name","delivery_name","street","state","zip_post_code","city","country_region")],by="sales_order",all.x=TRUE,all.y=FALSE)
+
+
+#Merge required return reason codes
+invoice_journal_costs <- merge(invoice_journal_costs,return_reason_codes,by="return_reason_code",all.x=TRUE,all.y=FALSE)
+
+#Merge required settlement table dates
+cust_settlement <- cust_settlement[!duplicated(cust_settlement$offset_voucher),]
+invoice_journal_costs <- merge(invoice_journal_costs,cust_settlement,by.x="voucher",by.y="offset_voucher",all.x=TRUE,all.y=FALSE)
+
+#Add cost calculations
+
+#Create inventory management and freight cost columns for sales orders
+invoice_journal_costs <- transform(invoice_journal_costs,freight_cost= ifelse(invoice_journal_costs$order_type == 'Sales order'& invoice_journal_costs$sales_subtotal_amount_ac>=0 ,invoice_journal_costs$freight_costs_pu*invoice_qty,0),
+                                        picking_cost= ifelse(invoice_journal_costs$order_type == 'Sales order' & invoice_journal_costs$sales_subtotal_amount_ac>=0,invoice_journal_costs$picking_pu*invoice_qty,0),
+                                        dispatch_costs=ifelse(invoice_journal_costs$order_type == 'Sales order'& invoice_journal_costs$sales_subtotal_amount_ac>=0,invoice_journal_costs$dispatch_pu*invoice_qty,0),
+                                        storage_costs=ifelse(invoice_journal_costs$order_type == 'Sales order'& invoice_journal_costs$sales_subtotal_amount_ac>=0,invoice_journal_costs$warehousing_costs*invoice_qty,0),
+                                        vas_costs = ifelse(!is.na(invoice_journal_costs$vas_codes_group) & invoice_journal_costs$order_type == 'Sales order' & invoice_journal_costs$sales_subtotal_amount_ac>=0,invoice_journal_costs$vas_pu*invoice_qty,0),
+                                        packaging_costs=ifelse(invoice_journal_costs$order_type == 'Sales order'& invoice_journal_costs$sales_subtotal_amount_ac>=0,invoice_journal_costs$packaging_pu*invoice_qty,0))
+#Create inventory management and freight cost columns for return orders
+invoice_journal_costs <- transform(invoice_journal_costs,
+                                        return_warehouse_costs = ifelse(invoice_journal_costs$order_type == 'Returned order' & invoice_journal_costs$return_reason_group != "om issue",invoice_journal_costs$returns_pu*invoice_qty,0))
+
+#Create Customer service sales order processing cost column
+invoice_journal_costs <- transform(invoice_journal_costs,customer_service_order_process = 
+                                          ifelse(invoice_journal_costs$order_type == 'Sales order' & !duplicated(invoice_journal_costs$sales_order),
+                                                 ifelse(!is.na(invoice_journal_costs$edi_code), 0.083*invoice_journal_costs$sales_order_processing_pu, 0.5*invoice_journal_costs$sales_order_processing_pu),0))
+#Create Customer service return order processing cost column
+invoice_journal_costs <- transform(invoice_journal_costs,customer_service_return_process = 
+                                          ifelse(invoice_journal_costs$order_type == 'Returned order' &!duplicated(invoice_journal_costs$sales_order),
+                                                 ifelse(invoice_journal_costs$line_items_count > 10,0.33*invoice_journal_costs$return_order_processing_pu,invoice_journal_costs$return_order_processing_pu*0.083),0))
+
+#Create IT (per transaction) cost column and fixed cost column
+invoice_journal_costs <- transform(invoice_journal_costs, 
+                                        it_cost_trans = 
+                                          ifelse(invoice_journal_costs$order_type == 'Sales order' & !is.na(edi_code) & !duplicated(invoice_journal_costs$sales_order) & invoice_journal_costs$sales_subtotal_amount_ac >= 0,invoice_journal_costs$edi_transaction,0),
+                                        it_cost_fixed_cs=
+                                          ifelse(invoice_journal_costs$order_type == 'Sales order' & !duplicated(invoice_journal_costs$sales_order) & grepl("CS",invoice_journal_costs$edi_code) & invoice_journal_costs$sales_subtotal_amount_ac>=0 ,invoice_journal_costs$cs_fixed_cost,0),
+                                        it_cost_fixed_3p5=
+                                          ifelse(invoice_journal_costs$order_type == 'Sales order' & !duplicated(invoice_journal_costs$sales_order) & grepl("3P5",invoice_journal_costs$edi_code) & invoice_journal_costs$sales_subtotal_amount_ac>=0 ,invoice_journal_costs$three_p_five_fixed_cost,0))
+
+#Apply sales (travel expenses)
+invoice_journal_costs <- transform(invoice_journal_costs, 
+                                   account_mgr_costs = 
+                                     ifelse(invoice_journal_costs$account_mgr != 'customer service' & invoice_journal_costs$account_mgr != 'misc customers (nz)' & invoice_journal_costs$account_mgr != 'misc customers (aus)' & invoice_journal_costs$order_type =="Sales order" & !duplicated(invoice_journal_costs$sales_order) ,2755000/length(which(invoice_journal_costs$account_mgr != 'customer service' & invoice_journal_costs$account_mgr != 'misc customers (nz)' & invoice_journal_costs$account_mgr != 'misc customers (aus)')),0))
+
+#Apply finance costs (late payment follow ups)
+invoice_journal_costs <- transform(invoice_journal_costs, 
+                                   days_late_payment = 
+                                     ifelse(invoice_journal_costs$date_of_settlement > invoice_journal_costs$due_date, invoice_journal_costs$date_of_settlement - invoice_journal_costs$due_date,0))
+#Apply finance costs (late payment follow ups)
+invoice_journal_costs <- transform(invoice_journal_costs, 
+                                   late_payment_costs = 
+                                     ifelse(invoice_journal_costs$days_late_payment > 0, 58146*invoice_journal_costs$days_late_payment/sum(invoice_journal_costs$days_late_payment,na.rm=TRUE),0))
+
+# New version of length which can handle NA's: if na.rm==T, don't count them
+length2 <- function (x, na.rm=TRUE) {
+  if (na.rm) sum(!is.na(x))
+  else       length(x)
+}
+#Create Year,month and day columns in CUSTOMER INVOICE JOURNAL
+invoice_journal_costs <- transform(invoice_journal_costs,year_invoice=year(invoice_date),month_invoice=month(invoice_date))
+
+#gross sales
+invoice_journal_costs <- transform(invoice_journal_costs, gross_sales = sales_subtotal_amount_ac + line_discount_ac)
+
+#Merge required return reason codes
+invoice_journal_costs <- merge(customer,invoice_journal_costs,by="customer_account",all.x=TRUE,all.y=FALSE)
+
+#write to feather file
+write_feather(invoice_journal_costs, "invoice_journal_costs.feather")
+write.csv(invoice_journal_costs,"invoice_journal_costs.csv")
+
+#Summarise the invoice table at a year month and delivery name level
+invoice_journal_costs_summed <- ddply(invoice_journal_costs,.(year_invoice, month_invoice, customer_account),summarise,
+                      #Sales and expenses summed
+                      sales_subtotal_amount_ac = sum(sales_subtotal_amount_ac, na.rm=TRUE),
+                      line_discount_ac=sum(line_discount_ac, na.rm=TRUE),
+                      charges_ac = sum(charges_ac, na.rm=TRUE),
+                      cogs=sum(cogs, na.rm=TRUE),
+                      freight_revenue_1 = sum(freight_revenue_1,na.rm=TRUE),
+                      freight_cost=sum(freight_cost,na.rm=TRUE),
+                      picking_cost=sum(picking_cost,na.rm=TRUE),
+                      dispatch_costs = sum(dispatch_costs,na.rm=TRUE),
+                      storage_costs=sum(storage_costs,na.rm=TRUE),
+                      vas_costs=sum(vas_costs,na.rm=TRUE),
+                      packaging_costs=sum(packaging_costs,na.rm=TRUE),
+                      return_warehouse_costs=sum(return_warehouse_costs,na.rm=TRUE),
+                      customer_service_order_process=sum(customer_service_order_process,na.rm=TRUE),
+                      customer_service_return_process=sum(customer_service_return_process,na.rm=TRUE),
+                      it_cost_trans=sum(it_cost_trans,na.rm=TRUE),
+                      it_cost_fixed_cs=sum(it_cost_fixed_cs,na.rm=TRUE),
+                      it_cost_fixed_3p5=sum(it_cost_fixed_3p5,na.rm=TRUE),
+                      account_mgr_costs=sum(account_mgr_costs,na.rm=TRUE),
+                      days_late_payment=sum(days_late_payment,na.rm=TRUE),
+                      late_payment_costs=sum(late_payment_costs,na.rm=TRUE),
+                      gross_sales=sum(gross_sales,na.rm=TRUE),
+
+                      #count what type of returns are made by each customer
+                      carr_issue=length2(which(return_reason_group=='carr issue')),
+                      om_issue=length2(which(return_reason_group=='om issue')),
+                      cnsm_choic=length2(which(return_reason_group=='cnsm choic')),
+                      sale_issue=length2(which(return_reason_group=='sale issue')),
+                      other=length2(which(return_reason_group=='other')),
+                      cust_fault=length2(which(return_reason_group=='cust fault')),
+                      wh_issue=length2(which(return_reason_group=='wh issue')),
+                      des_fault=length2(which(return_reason_group=='des fault')),
+                      fab_fault=length2(which(return_reason_group=='fab fault')),
+                      mfg_fault=length2(which(return_reason_group=='mfg fault')),
+                      pack_fault=length2(which(return_reason_group=='pack fault')),
+                      prod_issue=length2(which(return_reason_group=='prod issue')),
+                  
+                      #count different types of invoices raised by each customer
+                      sales_orders = length2(which(order_type=='Sales order' & !duplicated(sales_order))),
+                      return_orders = length2(which(order_type=='Returned order' & !duplicated(sales_order))),
+                      invoice_sales=length2(which(order_type=='Sales order')),
+                      invoice_returned=length2(which(order_type=='Returned order')),
+                      atonce=length2(which(cust_order_group=='atonce' & order_type=='Sales order' & !duplicated(sales_order))),
+                      promo=length2(which(cust_order_group=='promo' & order_type=='Sales order' & !duplicated(sales_order))),
+                      indent=length2(which(cust_order_group=='indent' & order_type=='Sales order' & !duplicated(sales_order))),
+                      eol=length2(which(cust_order_group== 'eol' & order_type=='Sales order' & !duplicated(sales_order))),
+                      indent_returns=length2(which(cust_order_group=='indent' & order_type=='Returned order' & !duplicated(sales_order))))
+
+#Add the free text invoices into the customer level view
+free_text_invoice_journal <- transform(free_text_invoice_journal,month_invoice=month(invoice_date),year_invoice=year(invoice_date))
+free_text_invoice_journal <- ddply(free_text_invoice_journal,.(year_invoice,month_invoice,customer_account),summarise,manual_discount = -sum(sales_subtotal_amount_ac))
+
+#Add the cash payment discounts
+fv_voucher <- transform(fv_voucher,month_invoice=month(create_date_time),year_invoice=year(create_date_time))
+fv_voucher <- ddply(fv_voucher,.(year_invoice,month_invoice,account_num),summarise,cash_discount = sum(utilised_cash_disc))
+
+invoice_journal_costs_summed <- merge(invoice_journal_costs_summed,free_text_invoice_journal,by=c("year_invoice", "month_invoice","customer_account"),all.x=TRUE,all.y=FALSE)
+invoice_journal_costs_summed <- merge(invoice_journal_costs_summed,fv_voucher,by.x=c("year_invoice", "month_invoice","customer_account"),by.y=c("year_invoice", "month_invoice","account_num"),all.x=TRUE,all.y=FALSE)
+
+#invoice_journal_costs <- merge(invoice_journal_costs,R_CUSTOMER_FREE_TEXT_INVOICE_JOURNAL_SUMS,by=c("YEAR_INVOICE", "MONTH_INVOICE","CUSTOMER_ACCOUNT"),all.x=TRUE,all.y=TRUE)
+#invoice_journal_costs <- merge(invoice_journal_costs,R_CUSTOMER_FREE_TEXT_INVOICE_JOURNAL_SUMS,by="CUSTOMER_ACCOUNT",all.x=TRUE,all.y=TRUE)
+invoice_journal_costs_summed$manual_discount[is.na(invoice_journal_costs_summed$manual_discount)] <- 0
+invoice_journal_costs_summed$cash_discount[is.na(invoice_journal_costs_summed$cash_discount)] <- 0
+#Net sales
+invoice_journal_costs_summed <- transform(invoice_journal_costs_summed, net_sales = gross_sales- line_discount_ac - manual_discount - cash_discount)
+
+#Gross Margin
+invoice_journal_costs_summed <- transform(invoice_journal_costs_summed,gross_margin = net_sales - cogs)
+
+#gross profit
+invoice_journal_costs_summed <- transform(invoice_journal_costs_summed, gross_profit = gross_margin + charges_ac +freight_revenue_1 - freight_cost - picking_cost - dispatch_costs - storage_costs - vas_costs - packaging_costs - return_warehouse_costs)
+
+#profit
+invoice_journal_costs_summed <- transform(invoice_journal_costs_summed, profit = gross_profit - customer_service_order_process - customer_service_return_process - it_cost_trans - it_cost_fixed_cs - it_cost_fixed_3p5 - account_mgr_costs - late_payment_costs)
+
+#profit % of gross sales
+invoice_journal_costs_summed <- transform(invoice_journal_costs_summed, profit_percent = invoice_journal_costs_summed$profit*100/invoice_journal_costs_summed$gross_sales)
+
+#Merge customer table with codes
+invoice_journal_costs_summed <- merge(customer,invoice_journal_costs_summed,by="customer_account",all.x=TRUE,all.y=FALSE)
+
+#Combine month and year into date
+
+invoice_journal_costs_summed$date <-   with(invoice_journal_costs_summed, sprintf("%d-%02d", year_invoice, month_invoice))
+
+write_feather(invoice_journal_costs_summed, "invoice_journal_costs_summed.feather")
+write.csv(invoice_journal_costs_summed,"invoice_journal_costs_summed.csv")
+
